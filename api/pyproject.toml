@@ -1,0 +1,19 @@
+[project]
+name = "goti-api"
+version = "0.0.1"
+description = "Goti backend: FastAPI + AgentField agents + integrations (Stream B + Stream C)."
+requires-python = ">=3.11"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["api*"]
+
+[tool.pytest.ini_options]
+# Stream C increment 1: keep tests rooted in api/tests; rootdir is the api/ folder.
+testpaths = ["tests"]
+asyncio_mode = "auto"
+markers = [
+    "live: hits real external sponsor APIs (Bright Data, Actionbook, etc). Skipped by default; run with `pytest -m live`.",
+]
+# Don't pick up `live` tests unless explicitly requested.
+addopts = "-m 'not live'"

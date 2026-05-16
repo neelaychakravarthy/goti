@@ -1,87 +1,163 @@
-"""Deterministic Bright Data mock — `Listing[]` fixtures.
+"""Deterministic mock for `api.integrations.discovery.search`.
 
-The returned listings match the SPEC.md `Listing` Pydantic shape (see
-``api/contracts.py::Listing``). Prices cluster around $200-$300 to simulate
-the standing-desk demo flow. Stream C will reconcile the real
-`api/integrations/discovery.py` against this mock at convergence — they
-share the same ``search(query, marketplaces, max_per_source)`` signature
-per the SPEC.md B<->C contract.
+Same async signature as the real one. Returns 3 hardcoded `Listing` rows
+per supported marketplace (FB / Nextdoor / OfferUp / Craigslist), with
+the query echoed into the title so test assertions can verify the query
+reached the mock.
+
+The mock constructs shapes matching `api/contracts.py::Listing` (the
+canonical Stream B Pydantic shape — `id` / `title` / `price` float /
+`marketplace` / `url` / `description` / etc.). At convergence the
+earlier Stream C `price_cents` / `listing_id` field names were dropped
+in favour of Stream B's canonical contract; price values are still
+sourced in cents internally for fixture readability and converted to
+dollars (`/ 100.0`) at construction time.
+
+Used by Streams A + B for offline dev under `GOTI_USE_MOCKS=1`.
 """
 
 from __future__ import annotations
 
 from api.contracts import Listing
 
+# Base fixtures — title is suffixed with the query at call time so mocked
+# results look query-relevant to downstream agents + UI cards.
+_FB_FIXTURES: list[dict] = [
+    {
+        "listing_id": "fb_mock_0001",
+        "title_base": "Standing Desk - Like New",
+        "description": "Adjustable height standing desk, used for 3 months. Walnut top.",
+        "price_cents": 22500,
+        "url": "https://facebook.com/marketplace/item/fb_mock_0001",
+    },
+    {
+        "listing_id": "fb_mock_0002",
+        "title_base": "Sit/Stand Desk (Black)",
+        "description": "Electric sit/stand desk, 60x30. Slight scratches on rear edge.",
+        "price_cents": 18000,
+        "url": "https://facebook.com/marketplace/item/fb_mock_0002",
+    },
+    {
+        "listing_id": "fb_mock_0003",
+        "title_base": "Vintage Mid-Century Desk",
+        "description": "Solid teak, 1960s. Not adjustable — but beautiful.",
+        "price_cents": 32500,
+        "url": "https://facebook.com/marketplace/item/fb_mock_0003",
+    },
+]
 
-def search(
-    query: str,  # noqa: ARG001 — fixtures ignore query semantics; demo-flow testability
-    marketplaces: list[str] | None = None,
+_NEXTDOOR_FIXTURES: list[dict] = [
+    {
+        "listing_id": "nd_mock_0001",
+        "title_base": "Used neighborhood pickup",
+        "description": "Light wear, available this weekend. Cash only.",
+        "price_cents": 27500,
+        "url": "https://nextdoor.com/for_sale/nd_mock_0001",
+    },
+    {
+        "listing_id": "nd_mock_0002",
+        "title_base": "Barely used - $250 OBO",
+        "description": "Moving out of the neighborhood, must sell. Pickup in Mission.",
+        "price_cents": 25000,
+        "url": "https://nextdoor.com/for_sale/nd_mock_0002",
+    },
+    {
+        "listing_id": "nd_mock_0003",
+        "title_base": "Free for pickup this weekend",
+        "description": "Free to a good home. First come first served.",
+        "price_cents": 0,
+        "url": "https://nextdoor.com/for_sale/nd_mock_0003",
+    },
+]
+
+_OFFERUP_FIXTURES: list[dict] = [
+    {
+        "listing_id": "ou_mock_0001",
+        "title_base": "OfferUp local deal",
+        "description": "Great condition, smoke-free home. Meet at the park.",
+        "price_cents": 19500,
+        "url": "https://offerup.com/item/detail/ou_mock_0001",
+    },
+    {
+        "listing_id": "ou_mock_0002",
+        "title_base": "Negotiable - shipping ok",
+        "description": "Open to offers. Can ship within CA.",
+        "price_cents": 24000,
+        "url": "https://offerup.com/item/detail/ou_mock_0002",
+    },
+    {
+        "listing_id": "ou_mock_0003",
+        "title_base": "Brand new in box",
+        "description": "Never opened. Got as a gift, not my style.",
+        "price_cents": 31000,
+        "url": "https://offerup.com/item/detail/ou_mock_0003",
+    },
+]
+
+_CRAIGSLIST_FIXTURES: list[dict] = [
+    {
+        "listing_id": "cl_mock_0001",
+        "title_base": "SF Bay - must go this week",
+        "description": "Moving, everything must go. SOMA pickup only.",
+        "price_cents": 15000,
+        "url": "https://sfbay.craigslist.org/sfc/fuo/d/cl_mock_0001.html",
+    },
+    {
+        "listing_id": "cl_mock_0002",
+        "title_base": "Great condition - $200 firm",
+        "description": "Used for 6 months. No low-ballers please.",
+        "price_cents": 20000,
+        "url": "https://sfbay.craigslist.org/sfc/fuo/d/cl_mock_0002.html",
+    },
+    {
+        "listing_id": "cl_mock_0003",
+        "title_base": "Quick sale - cash only",
+        "description": "Need gone by Sunday. Berkeley pickup.",
+        "price_cents": 12500,
+        "url": "https://sfbay.craigslist.org/eby/fuo/d/cl_mock_0003.html",
+    },
+]
+
+# Marketplace -> fixture list. Unwired marketplaces return [] (mirror the
+# real client's "skip silently" semantics for unwired markets).
+_FIXTURES_BY_MARKETPLACE: dict[str, list[dict]] = {
+    "fb": _FB_FIXTURES,
+    "nextdoor": _NEXTDOOR_FIXTURES,
+    "offerup": _OFFERUP_FIXTURES,
+    "craigslist": _CRAIGSLIST_FIXTURES,
+}
+
+
+def _fixture_for(marketplace: str, query: str, max_per_source: int) -> list[Listing]:
+    fixtures = _FIXTURES_BY_MARKETPLACE.get(marketplace)
+    if not fixtures:
+        return []
+    out: list[Listing] = []
+    for fx in fixtures[:max_per_source]:
+        out.append(
+            Listing(
+                id=fx["listing_id"],
+                title=f"{fx['title_base']} — re: {query}",
+                # Stream B's Listing uses dollar floats; fixtures are
+                # authored in cents for readability.
+                price=float(fx["price_cents"]) / 100.0,
+                marketplace=marketplace,
+                url=fx["url"],
+                description=fx["description"],
+                image_url=None,
+                seller_name=None,
+                location=None,
+            )
+        )
+    return out
+
+
+async def search(
+    query: str,
+    marketplaces: list[str],
     max_per_source: int = 10,
 ) -> list[Listing]:
-    """Return ~5 fixture listings.
-
-    Ignores query semantics by design so demo-day variations of the goal
-    text still produce a populated discovery view. Filter by `marketplaces`
-    if provided; otherwise returns the full fixture set capped at
-    `max_per_source`.
-    """
-    base = [
-        Listing(
-            id="lst-mock-1",
-            title="Adjustable standing desk, walnut top",
-            price=215.0,
-            marketplace="fb",
-            url="https://facebook.com/marketplace/item/mock-1",
-            image_url="https://placehold.co/600x400?text=Standing+Desk",
-            seller_name="Maya R.",
-            location="Mission District, SF",
-            description="Electric height-adjust, used 6 months. Pickup only.",
-        ),
-        Listing(
-            id="lst-mock-2",
-            title="Uplift V2 standing desk (gently used)",
-            price=240.0,
-            marketplace="nextdoor",
-            url="https://nextdoor.com/for_sale/mock-2",
-            image_url="https://placehold.co/600x400?text=Uplift+Desk",
-            seller_name="Diego M.",
-            location="SoMa, SF",
-            description="Bought new in 2024. Moving sale.",
-        ),
-        Listing(
-            id="lst-mock-3",
-            title="FlexiSpot E7 frame + bamboo top",
-            price=199.0,
-            marketplace="offerup",
-            url="https://offerup.com/item/mock-3",
-            image_url="https://placehold.co/600x400?text=FlexiSpot",
-            seller_name="Priya S.",
-            location="Inner Sunset, SF",
-            description="Frame in great shape; small scratch on top.",
-        ),
-        Listing(
-            id="lst-mock-4",
-            title="Vivo standing desk converter",
-            price=125.0,
-            marketplace="craigslist",
-            url="https://craigslist.org/item/mock-4",
-            image_url="https://placehold.co/600x400?text=Vivo",
-            seller_name="Mike K.",
-            location="Oakland",
-            description="Sits on existing desk. Like new.",
-        ),
-        Listing(
-            id="lst-mock-5",
-            title="Autonomous SmartDesk 2",
-            price=285.0,
-            marketplace="fb",
-            url="https://facebook.com/marketplace/item/mock-5",
-            image_url="https://placehold.co/600x400?text=Autonomous",
-            seller_name="Jasmine T.",
-            location="Berkeley",
-            description="Black frame, white top. 2 yr warranty.",
-        ),
-    ]
-    if marketplaces:
-        base = [listing for listing in base if listing.marketplace in marketplaces]
-    return base[:max_per_source]
+    out: list[Listing] = []
+    for mp in marketplaces:
+        out.extend(_fixture_for(mp, query, max_per_source))
+    return out

@@ -54,7 +54,7 @@ Each sponsor entry should capture:
     - `Z_AI_API_KEY` (Z.AI / GLM-5.1)
     - `TOKENROUTER_API_KEY` (gateway for all LLM calls — wired from day 1)
     - `ANTHROPIC_API_KEY` (parked for future Claude swap via TokenRouter; not used in v1)
-    - `BRIGHT_DATA_API_KEY` + `BRIGHT_DATA_ZONE`
+    - `BRIGHT_DATA_API_KEY` + `BRIGHT_DATA_ZONE` + `BRIGHT_DATA_FB_DATASET_ID` + `BRIGHT_DATA_NEXTDOOR_DATASET_ID` + `BRIGHT_DATA_OFFERUP_DATASET_ID` + `BRIGHT_DATA_CRAIGSLIST_DATASET_ID` (dataset IDs filled in after running `python -m api.integrations.bright_data.discover_datasets` against each marketplace)
     - `ACTIONBOOK_MCP_URL` (default `https://edge.actionbook.dev/mcp`)
     - `ACTIONBOOK_OAUTH_ISSUER` (default `https://clerk.actionbook.dev` — Actionbook's OAuth provider)
     - `ACTIONBOOK_OAUTH_REDIRECT_URI` (callback URL — `https://<zeabur-api>/api/integrations/{provider}/oauth/callback`; the `{provider}` literal is interpolated at request time)
@@ -66,7 +66,13 @@ Each sponsor entry should capture:
 
 - **Frontend:** Next.js (App Router) + Tailwind CSS + shadcn/ui. UI quality is a stated priority — sleek + clean, control-plane shape (left rail: active negotiations list; main: per-job chat view with approval cards). Greyed-out "Full Autonomy" toggle per job as a vision marker (non-functional in v1).
 - **Backend:** Python (FastAPI) co-located with AgentField agents. Single Python codebase for the glue API + agent definitions.
-- **Database / storage:** Postgres on Zeabur for app state (users, active negotiation jobs, message threads, approval queue, scraped listings cache). EverOS handles agent memory (Cases + Skills) separately.
+- **Database / storage:** Postgres on Zeabur for app state (users, active negotiation jobs, message threads, approval queue, scraped listings cache, Actionbook OAuth tokens). EverOS handles agent memory (Cases + Skills) separately. **Converged schema (`api/alembic/versions/0001_initial.py`, `api/models.py`):**
+  - `users` (Stream C) — `id UUID PK`, `email VARCHAR(320) UNIQUE NOT NULL`, `display_name VARCHAR(120)`, `created_at TIMESTAMPTZ NOT NULL DEFAULT now()`.
+  - `integration_accounts` (Stream B — OAuth shape; supersedes Stream C's pre-Actionbook-Clerk-probe profile-id assumption) — `id UUID PK`, `user_id VARCHAR(255)` (free string; not a FK to `users.id` for now — UUID-vs-str reconciliation deferred), `provider VARCHAR(64) NOT NULL` (`'fb'` | `'nextdoor'`), `actionbook_user_id VARCHAR(255) NULL`, `access_token TEXT NOT NULL`, `refresh_token TEXT NULL`, `token_expires_at TIMESTAMPTZ NULL`, `scopes VARCHAR(512) NULL`, `linked_at TIMESTAMPTZ NOT NULL DEFAULT now()`, `status VARCHAR(32) NOT NULL DEFAULT 'active'`. Unique constraint `(user_id, provider)`. Index `(user_id, provider, status)`. Encryption follow-up tracked in Open questions.
+  - `listings_cache` (Stream C) — composite PK `(marketplace, listing_id)`, `title TEXT`, `description TEXT`, `price_cents BIGINT`, `currency VARCHAR(8) NOT NULL DEFAULT 'USD'`, `url TEXT`, `raw_data JSONB NOT NULL DEFAULT '{}'`, `goal_id UUID` (nullable, no FK — `goals` table owned by Stream B; FK added when that lands), `fetched_at TIMESTAMPTZ NOT NULL DEFAULT now()`. Index on `goal_id`.
+  - `jobs` (Stream B) — `id UUID PK`, `user_id VARCHAR(128)`, `listing_id VARCHAR(256)`, `status VARCHAR(32) DEFAULT 'draft'`, `target_price FLOAT NULL`, `created_at TIMESTAMPTZ DEFAULT now()`, `last_message_at TIMESTAMPTZ NULL`.
+  - `message_threads` (Stream B) — `id UUID PK`, `job_id UUID FK→jobs.id ON DELETE CASCADE`, `role VARCHAR(32)` (`'seller'` | `'buyer_agent'` | `'system'`), `text TEXT`, `sent_at TIMESTAMPTZ DEFAULT now()`.
+  - `approval_queue` (Stream B) — `id UUID PK`, `job_id UUID FK→jobs.id ON DELETE CASCADE`, `draft_text TEXT`, `draft_reasoning TEXT NULL`, `decision VARCHAR(32) NULL` (`'approve'` | `'reject'`), `decided_at TIMESTAMPTZ NULL`, `created_at TIMESTAMPTZ DEFAULT now()`.
 - **Auth:** App-level login (single demo user for the hackathon) + per-user Actionbook browser profile holding FB Marketplace + Nextdoor sessions. Lightweight auth; not the focus.
 - **AI / LLM:** **GLM-5.1 via Z.AI** for all agents in v1. **TokenRouter is wired as the LLM gateway from day one** — every model call goes through TokenRouter, even though v1 routes 100% of traffic to GLM. This satisfies TokenRouter's sponsor integration depth (real usage, not just a dependency line) and makes a future Claude swap a config change instead of a code change. No runtime routing logic in v1 — if GLM struggles on tone-sensitive drafts during dev, swap models manually via the TokenRouter config.
 
@@ -110,9 +116,9 @@ Each sponsor entry should capture:
 - **TokenRouter model identifier for GLM-5.1 — confirm at first real boot** — `GLM_MODEL_ID` defaults to `"z-ai/glm-5.1"` (OpenRouter-namespace convention). If TokenRouter rejects, override via `.env` to whatever the docs prescribe (e.g., `"glm-5.1"`).
 - **Dynamic OAuth client registration persistence** — Stream B caches the Clerk-issued `client_id` in-memory only. Container restart triggers a fresh registration (cheap + idempotent per Clerk). For long-running prod, persist to DB via a small `oauth_client_registration` row.
 - **Background seller-reply polling** — `mocks/actionbook.fetch_replies` exists but no scheduler currently polls. The negotiator drafts on demand only. A future increment needs an apscheduler/arq cron to detect replies + re-invoke the negotiator. Required for the live-demo "seller replied → counter draft using BATNA leverage" moment.
-- **Stream C alembic migration version chain** — Stream B added `0002_integration_accounts.py`; Stream C's first migration must use `down_revision = "0002"` (not `"0001"` — this changed when ownership of `integration_accounts` moved from C to B). Surface in team chat when Stream C starts.
+- **`integration_accounts.user_id` type divergence** — Stream B uses `VARCHAR(255)` (free string keyed off the demo user id); Stream C's earlier `users` table uses `UUID PK`. After convergence the `users` table exists but `integration_accounts.user_id` is intentionally not a FK to it. Reconcile in a future increment once the auth layer + demo-user id strategy is finalised.
 - **Production deploy** — Stream B is locally complete via docker-compose. Zeabur deployment of `api/` is its own future increment (Deployment section still TBD on exact Zeabur command).
-- **`listings_cache` table** — Stream B's `/api/listings/{id}/negotiate` route currently resolves listing details by scanning the mocks fixtures by `id`. Stream C owns the real `listings_cache` table; Stream B's resolver swaps over at convergence.
+- **`listings_cache` table wiring** — Stream B's `/api/listings/{id}/negotiate` route currently resolves listing details by scanning the mocks fixtures by `id`. Stream C's `listings_cache` table is now present at the schema level; Stream B's resolver swap to read from it is a follow-up increment.
 
 > **Decisions resolved during `/kickoff --start` (2026-05-16):**
 >
@@ -210,6 +216,8 @@ Architectural implications:
 
 **First `/ship-it` increment:** Bright Data fetch for 1 marketplace + 1 query → returns `Listing[]` in the agreed shape. Investigate Actionbook's MCP tool surface (what tools does `edge.actionbook.dev/mcp` expose?) and document in SPEC.md. Prototype 1 agent-driving sequence ("send a message on FB Marketplace") using Stream B's mcp_client seam against a mocked MCP server. Mock-externals module exposes the same interface with hardcoded responses. Stream C migrations land: users, integration_accounts, listings_cache tables.
 
+**Stream C delivered to convergence (2026-05-16):** Bright Data scrapers for all 4 marketplaces (`api/integrations/bright_data/{fb_marketplace,nextdoor,offerup,craigslist}.py`) wired via the shared `_DATASET_ENV` + `_PARSERS` registry in `api/integrations/bright_data/client.py`. Actionbook FB + Nextdoor driver surface (`api/integrations/actionbook/{fb,nextdoor}.py`); both still raise `NotImplementedError` on the real path pending the dev's wire-up to Stream B's MCP `call_tool` seam (follow-up increment). Fully-functional async mocks in `api/mocks/{discovery,actionbook}.py` (3 listings × 4 marketplaces; per-provider `fb_send_message` / `nextdoor_send_message` / `fb_fetch_replies` / `nextdoor_fetch_replies` helpers) let Streams A + B develop offline against `GOTI_USE_MOCKS=1`. Tests at `api/tests/` cover the mock path; live tests under `pytest -m live` opt in against real Bright Data datasets. Migration `0001_initial.py` consolidates Stream B + C tables into a single revision.
+
 **Sponsor depth owned by Stream C:** Bright Data (≥3 marketplaces in demo), Actionbook (agent-driving prompts + tool-sequences that complete a negotiation round-trip per platform; the OAuth + MCP transport is Stream B's).
 
 ---
@@ -240,7 +248,7 @@ Architectural implications:
 ```python
 # Discovery — Stream C owns this signature; Stream B consumes.
 # api/integrations/discovery.py
-def search(query: str, marketplaces: list[str], max_per_source: int = 10) -> list[Listing]: ...
+async def search(query: str, marketplaces: list[str], max_per_source: int = 10) -> list[Listing]: ...
 ```
 
 **Actionbook (MCP+OAuth, split ownership):**
@@ -252,13 +260,14 @@ def search(query: str, marketplaces: list[str], max_per_source: int = 10) -> lis
   ```
   Internally: loads OAuth tokens from `integration_accounts` for `user_id`, opens an MCP session against `ACTIONBOOK_MCP_URL`, invokes the tool, returns the response.
 
-- **Stream C owns** the marketplace-verb semantics — Python wrappers that translate "send a message on FB Marketplace for this listing" into a sequence of Actionbook MCP `call_tool(...)` invocations. The exact wrapper shape is **TBD pending Stream C's investigation of Actionbook's MCP tool surface in their first `/ship-it` round** (see Open Questions). Likely shape:
+- **Stream C owns** the marketplace-verb semantics — async Python wrappers that translate "send a message on FB Marketplace for this listing" into a sequence of Actionbook MCP `call_tool(...)` invocations. As-shipped at convergence:
   ```python
-  # api/integrations/actionbook/fb.py  (Stream C owns — shape TBD)
-  async def send_message(user_id: str, listing_id: str, message_text: str) -> MessageId: ...
-  async def fetch_replies(user_id: str, listing_id: str, since_ts: float) -> list[Reply]: ...
+  # api/integrations/actionbook/fb.py  (Stream C owns)
+  async def send_message(profile_id: str, listing_id: str, message_text: str) -> MessageId: ...
+  async def fetch_replies(profile_id: str, listing_id: str, since_ts: float) -> list[Reply]: ...
   # (parallel module for nextdoor.py)
   ```
+  Real path currently raises `NotImplementedError` — follow-up increment wires these onto Stream B's `call_tool` seam.
 
 `GOTI_USE_MOCKS=1` flips both shapes to `api/mocks/*.py` fixtures. Stream C maintains the fixtures (including an in-memory mock MCP server for the Actionbook path) next to the real implementations.
 

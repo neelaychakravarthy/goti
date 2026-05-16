@@ -1,72 +1,90 @@
-"""Deterministic Actionbook mock — ``send_message`` + ``fetch_replies``.
+"""Stateless Actionbook mock for offline dev under `GOTI_USE_MOCKS=1`.
 
-Used by Stream B's negotiator agent (and any other caller) when
-``GOTI_USE_MOCKS=1``. Stream C will reconcile this at convergence — the
-real ``api/integrations/actionbook/*.py`` wrappers and this mock share the
-same surface area per the SPEC.md B<->C contract.
+Per-provider helpers (`fb_send_message`, `fb_fetch_replies`,
+`nextdoor_send_message`, `nextdoor_fetch_replies`) match Stream C's
+`api/integrations/actionbook/{fb,nextdoor}.py` driver surface. The
+drivers themselves dispatch into this module when `settings.use_mocks`
+is truthy.
+
+`send_message`: returns a counter-based MessageId per provider. Counters
+are module-level, so tests should not assert exact values across test
+boundaries.
+
+`fetch_replies`: returns 1-2 hardcoded `Reply` rows per provider,
+ignoring `since_ts`. Replies look like real marketplace seller messages
+so Stream B's negotiator agent sees realistic input during dev.
 """
 
 from __future__ import annotations
 
-import logging
 import time
-import uuid
-from dataclasses import dataclass
+from itertools import count
+from typing import Iterator
 
-logger = logging.getLogger(__name__)
+from api.contracts import MessageId, Reply
+
+# Per-provider counters; module-level so identical message-id values reset
+# only on process restart. Adequate for dev loops; tests should assert on
+# format (prefix + width) rather than exact integer.
+_fb_counter: Iterator[int] = count(1)
+_nextdoor_counter: Iterator[int] = count(1)
+
+_NOW = time.time()
+
+_FB_REPLIES: list[Reply] = [
+    Reply(
+        message_id=MessageId("mock-fb-reply-001"),
+        listing_id="__any__",
+        sender="seller",
+        text="Still available. I'm pretty firm at $300 but I'll throw in the cable.",
+        received_at=_NOW - 600,  # 10 min ago
+    ),
+    Reply(
+        message_id=MessageId("mock-fb-reply-002"),
+        listing_id="__any__",
+        sender="seller",
+        text="Honestly I can do $250 if you can pick up this evening.",
+        received_at=_NOW - 60,  # 1 min ago
+    ),
+]
+
+_NEXTDOOR_REPLIES: list[Reply] = [
+    Reply(
+        message_id=MessageId("mock-nd-reply-001"),
+        listing_id="__any__",
+        sender="seller",
+        text="Hi neighbor! Yes still here. Price is $280 OBO.",
+        received_at=_NOW - 1200,  # 20 min ago
+    ),
+    Reply(
+        message_id=MessageId("mock-nd-reply-002"),
+        listing_id="__any__",
+        sender="seller",
+        text="$240 works for me if you can grab it tomorrow morning.",
+        received_at=_NOW - 30,
+    ),
+]
 
 
-@dataclass
-class Reply:
-    """One seller reply fetched from the mocked Actionbook session."""
-
-    id: str
-    listing_id: str
-    text: str
-    received_at: float
+async def fb_send_message(
+    profile_id: str, listing_id: str, message_text: str
+) -> MessageId:
+    return MessageId(f"mock-fb-msg-{next(_fb_counter):04d}")
 
 
-def send_message(user_id: str, listing_id: str, text: str) -> str:
-    """Fake-send a message; return a synthetic ``message_id``.
-
-    Real Actionbook MCP `send_message` returns the platform's message_id;
-    this mock returns ``mock-msg-<uuid8>`` to match that shape. Logs the
-    call at INFO so devs can verify the negotiator -> Actionbook seam is
-    being exercised end-to-end.
-    """
-    message_id = f"mock-msg-{uuid.uuid4().hex[:8]}"
-    logger.info(
-        "[MOCK actionbook.send_message] user=%s listing=%s msg_id=%s text=%r",
-        user_id,
-        listing_id,
-        message_id,
-        text[:80],
-    )
-    return message_id
+async def fb_fetch_replies(
+    profile_id: str, listing_id: str, since_ts: float
+) -> list[Reply]:
+    return list(_FB_REPLIES)  # defensive copy
 
 
-def fetch_replies(user_id: str, listing_id: str, since_ts: float) -> list[Reply]:
-    """Return 0 or 1 fixture reply, alternating by ``since_ts`` parity.
+async def nextdoor_send_message(
+    profile_id: str, listing_id: str, message_text: str
+) -> MessageId:
+    return MessageId(f"mock-nd-msg-{next(_nextdoor_counter):04d}")
 
-    Determinism: an even ``int(since_ts)`` returns one mock reply; odd
-    returns none. This simulates a seller responding ~every other poll so
-    the polling loop in Pass 2 / future increments can be exercised
-    without flake.
-    """
-    now = time.time()
-    if int(since_ts) % 2 == 0:
-        return [
-            Reply(
-                id=f"mock-reply-{uuid.uuid4().hex[:8]}",
-                listing_id=listing_id,
-                text="Still available! What's your best offer?",
-                received_at=now,
-            )
-        ]
-    logger.debug(
-        "[MOCK actionbook.fetch_replies] user=%s listing=%s since_ts=%s -> 0 replies",
-        user_id,
-        listing_id,
-        since_ts,
-    )
-    return []
+
+async def nextdoor_fetch_replies(
+    profile_id: str, listing_id: str, since_ts: float
+) -> list[Reply]:
+    return list(_NEXTDOOR_REPLIES)  # defensive copy

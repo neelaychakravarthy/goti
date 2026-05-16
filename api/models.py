@@ -1,10 +1,19 @@
-"""SQLAlchemy ORM models for Stream B-owned tables.
+"""SQLAlchemy ORM models for the converged Goti schema.
 
-Stream B owns: jobs, message_threads, approval_queue, integration_accounts.
+Stream B-owned: jobs, message_threads, approval_queue, integration_accounts.
 (Pass 3 moved integration_accounts under Stream B's ownership since Stream B
 now owns the full Actionbook OAuth flow end-to-end.)
 
+Stream C-owned: users, listings_cache.
+
 CRUD helpers (class-methods) added in Pass 2 to keep route code thin.
+
+Note on `users.id` vs `integration_accounts.user_id`: `users.id` is a UUID
+PK (Stream C's auth surface), but `IntegrationAccountRow.user_id` is a
+free `VARCHAR(255)` string keyed off the demo user id (Stream B's OAuth
+flow). Reconciling those into a single FK is deferred until the auth
+layer + demo-user-id strategy stabilises — tracked in SPEC.md Open
+questions.
 """
 
 from __future__ import annotations
@@ -14,9 +23,12 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from sqlalchemy import (
+    BigInteger,
     DateTime,
     Float,
     ForeignKey,
+    Index,
+    PrimaryKeyConstraint,
     String,
     Text,
     UniqueConstraint,
@@ -24,7 +36,7 @@ from sqlalchemy import (
     select,
     update,
 )
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -326,3 +338,62 @@ class IntegrationAccountRow(Base):
             )
         )
         return list(result.scalars().all())
+
+
+# ---------------------------------------------------------------------------
+# Stream C-owned tables.
+
+
+def _utcnow() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+class User(Base):
+    """A single-demo-user row (Stream C-owned).
+
+    No relationship to `IntegrationAccountRow` — that table is keyed off a
+    free `user_id: VARCHAR(255)` rather than a UUID FK. See module
+    docstring for the divergence note.
+    """
+
+    __tablename__ = "users"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    email: Mapped[str] = mapped_column(String(320), unique=True, nullable=False)
+    display_name: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_utcnow, nullable=False
+    )
+
+
+class ListingCache(Base):
+    """Per-marketplace listing cache populated from Bright Data (Stream C).
+
+    `goal_id` is nullable + has no FK because Stream B's `goals` table
+    doesn't exist as a separate table yet. FK gets added when that lands.
+    """
+
+    __tablename__ = "listings_cache"
+
+    marketplace: Mapped[str] = mapped_column(String(32), nullable=False)
+    listing_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    title: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    price_cents: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
+    currency: Mapped[str] = mapped_column(String(8), default="USD", nullable=False)
+    url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    raw_data: Mapped[dict] = mapped_column(JSONB, default=dict, nullable=False)
+    # No FK — Stream B owns `goals`. FK gets added when that table lands.
+    goal_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), nullable=True
+    )
+    fetched_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_utcnow, nullable=False
+    )
+
+    __table_args__ = (
+        PrimaryKeyConstraint("marketplace", "listing_id", name="pk_listings_cache"),
+        Index("ix_listings_cache_goal_id", "goal_id"),
+    )

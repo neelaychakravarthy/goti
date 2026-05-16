@@ -40,6 +40,25 @@ class Settings(BaseSettings):
     # Memory store
     everos_api_key: str | None = Field(default=None, alias="EVEROS_API_KEY")
 
+    # Bright Data discovery (Stream C). One dataset id per wired marketplace;
+    # `discover_datasets.py` can list options for the configured API key.
+    bright_data_api_key: str | None = Field(
+        default=None, alias="BRIGHT_DATA_API_KEY"
+    )
+    bright_data_zone: str | None = Field(default=None, alias="BRIGHT_DATA_ZONE")
+    bright_data_fb_dataset_id: str | None = Field(
+        default=None, alias="BRIGHT_DATA_FB_DATASET_ID"
+    )
+    bright_data_nextdoor_dataset_id: str | None = Field(
+        default=None, alias="BRIGHT_DATA_NEXTDOOR_DATASET_ID"
+    )
+    bright_data_offerup_dataset_id: str | None = Field(
+        default=None, alias="BRIGHT_DATA_OFFERUP_DATASET_ID"
+    )
+    bright_data_craigslist_dataset_id: str | None = Field(
+        default=None, alias="BRIGHT_DATA_CRAIGSLIST_DATASET_ID"
+    )
+
     # Actionbook MCP + OAuth (Stream B owns MCP client + OAuth; Stream C owns
     # marketplace-verb wrappers on top). Clerk is the OAuth issuer fronting
     # the Actionbook MCP server. Dynamic Client Registration (RFC 7591) means

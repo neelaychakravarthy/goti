@@ -19,7 +19,7 @@ docker compose up --build
 
 This boots three services:
 
-- **`postgres`** on `:5432` — Stream B's tables (`jobs`, `message_threads`, `approval_queue`) are auto-migrated on api startup.
+- **`postgres`** on `:5432` — converged tables (`users`, `integration_accounts`, `listings_cache`, `jobs`, `message_threads`, `approval_queue`) are auto-migrated on api startup.
 - **`af-server`** on `:8080` — AgentField control plane.
 - **`api`** on `:8000` — FastAPI app + the `goti` AgentField sidecar hosting four reasoners (clarifier, valuation, negotiator, coordinator) on a single shared Agent.
 
@@ -44,3 +44,27 @@ To tear down: `docker compose down` (add `-v` to also drop the postgres volume).
 ### Frontend dev (Stream A)
 
 `web/` lives in its own README — see `web/README.md` once Stream A lands.
+
+### Running the test suite
+
+The Stream C-owned mock + integration tests run offline:
+
+```bash
+cd api
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+GOTI_USE_MOCKS=1 pytest
+```
+
+Live Bright Data smoke (real HTTP calls — burns credits, opt-in only):
+
+```bash
+# Discover dataset IDs and paste them into .env:
+BRIGHT_DATA_API_KEY=... python -m api.integrations.bright_data.discover_datasets
+
+export BRIGHT_DATA_API_KEY=...
+export BRIGHT_DATA_FB_DATASET_ID=...
+# (similarly for NEXTDOOR / OFFERUP / CRAIGSLIST dataset IDs)
+pytest -m live
+```

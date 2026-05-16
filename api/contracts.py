@@ -7,7 +7,7 @@ a chat-channel notification per CLAUDE.md "Coordination notes."
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Literal
+from typing import Literal, NewType
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -185,3 +185,25 @@ class LinkInitResponse(BaseModel):
 class OAuthCallbackResponse(BaseModel):
     linked: bool
     provider: Literal["fb", "nextdoor"]
+
+
+# ---------------------------------------------------------------------------
+# Stream C: B↔C messaging types
+#
+# Imported by `api/integrations/actionbook/{fb,nextdoor}.py` and
+# `api/mocks/actionbook.py`. Distinct from `Message` above (which is the
+# A↔B REST shape including a UUID `id` + `job_id`); `Reply` is the
+# Actionbook-driver-level seller reply shape returned by `fetch_replies`.
+
+
+MessageId = NewType("MessageId", str)
+
+
+class Reply(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    message_id: MessageId
+    listing_id: str
+    sender: str  # 'seller' | 'system'
+    text: str
+    received_at: float  # unix ts
