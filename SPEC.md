@@ -54,7 +54,7 @@ Each sponsor entry should capture:
     - `Z_AI_API_KEY` (Z.AI / GLM-5.1)
     - `TOKENROUTER_API_KEY` (gateway for all LLM calls — wired from day 1)
     - `ANTHROPIC_API_KEY` (parked for future Claude swap via TokenRouter; not used in v1)
-    - `BRIGHT_DATA_API_KEY` + `BRIGHT_DATA_ZONE`
+    - `BRIGHT_DATA_API_KEY` + `BRIGHT_DATA_ZONE` + `BRIGHT_DATA_FB_DATASET_ID` (the last is filled in after running `python -m api.integrations.bright_data.discover_datasets` once during Stream C round 1 verification)
     - `ACTIONBOOK_API_KEY` + `ACTIONBOOK_FB_PROFILE_ID` + `ACTIONBOOK_NEXTDOOR_PROFILE_ID`
     - `EVERMIND_API_KEY`
     - `DATABASE_URL` (Postgres on Zeabur)
@@ -63,7 +63,11 @@ Each sponsor entry should capture:
 
 - **Frontend:** Next.js (App Router) + Tailwind CSS + shadcn/ui. UI quality is a stated priority — sleek + clean, control-plane shape (left rail: active negotiations list; main: per-job chat view with approval cards). Greyed-out "Full Autonomy" toggle per job as a vision marker (non-functional in v1).
 - **Backend:** Python (FastAPI) co-located with AgentField agents. Single Python codebase for the glue API + agent definitions.
-- **Database / storage:** Postgres on Zeabur for app state (users, active negotiation jobs, message threads, approval queue, scraped listings cache). EverOS handles agent memory (Cases + Skills) separately.
+- **Database / storage:** Postgres on Zeabur for app state (users, active negotiation jobs, message threads, approval queue, scraped listings cache). EverOS handles agent memory (Cases + Skills) separately. **As-shipped Stream C round 1 schema (`api/migrations/versions/0001_initial.py`, `api/db/models.py`):**
+  - `users` — `id UUID PK`, `email VARCHAR(320) UNIQUE NOT NULL`, `display_name VARCHAR(120)`, `created_at TIMESTAMPTZ NOT NULL DEFAULT now()`.
+  - `integration_accounts` — `id UUID PK`, `user_id UUID NOT NULL FK→users.id ON DELETE CASCADE`, `provider VARCHAR(32) NOT NULL` (`'fb'` | `'nextdoor'`), `actionbook_profile_id VARCHAR(128)`, `raw_session JSONB NOT NULL DEFAULT '{}'`, `linked_at TIMESTAMPTZ NOT NULL DEFAULT now()`. Unique index `(user_id, provider)`. Link state inferred from `raw_session` presence — no separate `status` column. Encryption follow-up tracked in Open questions.
+  - `listings_cache` — composite PK `(marketplace, listing_id)`, `title TEXT`, `description TEXT`, `price_cents BIGINT`, `currency VARCHAR(8) NOT NULL DEFAULT 'USD'`, `url TEXT`, `raw_data JSONB NOT NULL DEFAULT '{}'`, `goal_id UUID` (nullable, no FK — `goals` table owned by Stream B; FK added when that lands), `fetched_at TIMESTAMPTZ NOT NULL DEFAULT now()`. Index on `goal_id`.
+  - Stream B tables (`goals`, `jobs`, `message_threads`, `approval_queue`) land separately on Stream B's branch.
 - **Auth:** App-level login (single demo user for the hackathon) + per-user Actionbook browser profile holding FB Marketplace + Nextdoor sessions. Lightweight auth; not the focus.
 - **AI / LLM:** **GLM-5.1 via Z.AI** for all agents in v1. **TokenRouter is wired as the LLM gateway from day one** — every model call goes through TokenRouter, even though v1 routes 100% of traffic to GLM. This satisfies TokenRouter's sponsor integration depth (real usage, not just a dependency line) and makes a future Claude swap a config change instead of a code change. No runtime routing logic in v1 — if GLM struggles on tone-sensitive drafts during dev, swap models manually via the TokenRouter config.
 
@@ -215,7 +219,7 @@ Architectural implications:
 
 ```python
 # api/integrations/discovery.py
-def search(query: str, marketplaces: list[str], max_per_source: int = 10) -> list[Listing]: ...
+async def search(query: str, marketplaces: list[str], max_per_source: int = 10) -> list[Listing]: ...
 
 # api/integrations/actionbook/fb.py
 def send_message(profile_id: str, listing_id: str, message_text: str) -> MessageId: ...
@@ -225,6 +229,8 @@ def fetch_replies(profile_id: str, listing_id: str, since_ts: float) -> list[Rep
 def send_message(profile_id: str, listing_id: str, message_text: str) -> MessageId: ...
 def fetch_replies(profile_id: str, listing_id: str, since_ts: float) -> list[Reply]: ...
 ```
+
+> Stream C went async in increment 1; future Actionbook signatures should follow suit for consistency, but no blanket change this round.
 
 `GOTI_USE_MOCKS=1` flips all three modules to `api/mocks/*.py` fixtures. Stream B sets this in local dev; Stream C maintains the fixtures next to the real implementations.
 

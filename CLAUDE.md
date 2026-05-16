@@ -10,9 +10,9 @@ This is a hackathon project. See [`SPEC.md`](SPEC.md) for what we're building, s
 
 - **Install:** see README; multi-component install. Frontend: `cd web && npm install`. Backend: `cd api && python -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt`.
 - **Run dev:** `docker compose up` (full stack) — or `cd web && npm run dev` (frontend only) / `cd api && uvicorn main:app --reload` (backend only). Exact compose file lands with the first `/ship-it` increment.
-- **Test:** TBD — populated by the first `/ship-it` increment that adds tests.
+- **Test:** `cd api && GOTI_USE_MOCKS=1 pytest` (default — skips `live`-marked tests). Real Bright Data smoke: `cd api && pytest -m live -k test_discovery_live` (needs `BRIGHT_DATA_API_KEY` + `BRIGHT_DATA_FB_DATASET_ID` in shell).
 - **Lint / typecheck:** TBD — populated by the first `/ship-it` increment that adds linting.
-- **Build (deployable state check):** TBD — populated by the first `/ship-it` increment that adds a build step.
+- **Build (deployable state check):** `docker compose up -d postgres && cd api && source .venv/bin/activate && alembic upgrade head && GOTI_USE_MOCKS=1 pytest` — Postgres healthy + migrations apply + mock-path tests pass.
 - **Deploy:** Split deploy — `web/` (Next.js) on Vercel (`vercel deploy [--prod]`); `api/` (FastAPI) + Postgres on Zeabur (explore AI app template VTZ4FX). See `SPEC.md` Deployment for the per-deploy env-var allocation.
 
 ## Git policy

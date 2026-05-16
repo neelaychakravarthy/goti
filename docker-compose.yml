@@ -1,0 +1,19 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: goti
+      POSTGRES_PASSWORD: goti
+      POSTGRES_DB: goti
+    ports:
+      - "5432:5432"
+    volumes:
+      - goti-pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U goti -d goti"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  goti-pg-data:
