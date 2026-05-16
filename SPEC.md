@@ -24,7 +24,7 @@ Pitched as a generic agentic negotiation platform with deal-hunting as the launc
 All seven below are load-bearing for the Sponsored Product Usage criterion. Each has a concrete, non-cosmetic role in the agent topology — judges should see each one doing real work in the demo.
 
 - **AgentField** (open-source AI backend) — Hosts the agent topology: discovery, valuation, negotiator, coordinator. Provides async execution, shared memory (used for BATNA cross-leverage), and the `app.pause()` HITL primitive for per-message approval. **Integration depth:** ≥4 reasoner agents defined with decorators; shared memory used as the cross-negotiation state bus; pause/resume drives every approval card in the UI.
-- **Actionbook** (browser action engine) — Drives the user's logged-in Facebook Marketplace + Nextdoor sessions for outbound message sending. **Integration depth:** at least one negotiation round-trip per platform completed live in the demo via Actionbook's browser-driven flow.
+- **Actionbook** (browser-automation MCP server) — Hosted MCP server at `https://edge.actionbook.dev/mcp` exposing browser-automation tools, authenticated per user via OAuth. Goti's FastAPI layer is the MCP client; the negotiator agents call Actionbook tools through FastAPI to drive the user's logged-in Facebook Marketplace + Nextdoor sessions for outbound message sending. **Integration depth:** OAuth-linked session for ≥1 marketplace; at least one negotiation round-trip per platform completed live in the demo via Actionbook MCP tool calls.
 - **Bright Data** (web scraping) — Discovery layer. Aggregates listings from FB Marketplace, Nextdoor, OfferUp, Craigslist for the listing view. **Integration depth:** Bright Data marketplace scrapers used to populate the discovery feed; ≥3 marketplaces shown in the demo.
 - **EverOS / Evermind** (memory OS) — Stores Cases (completed negotiations) and surfaces Skills (learned negotiation patterns by category + region) before the negotiator drafts. **Integration depth:** Cases persisted per completed negotiation; ≥1 extracted Skill displayed in the demo's "learning loop" moment. Pre-seed with simulated past negotiations so the Memory Bank has content from minute zero.
 - **Z.AI (GLM-5.1)** (frontier LLM) — Primary reasoning model for negotiator + coordinator agents. **Integration depth:** GLM-5.1 used for negotiation drafts; Claude via TokenRouter as fallback if GLM struggles on tone-sensitive drafts.
@@ -55,7 +55,10 @@ Each sponsor entry should capture:
     - `TOKENROUTER_API_KEY` (gateway for all LLM calls — wired from day 1)
     - `ANTHROPIC_API_KEY` (parked for future Claude swap via TokenRouter; not used in v1)
     - `BRIGHT_DATA_API_KEY` + `BRIGHT_DATA_ZONE`
-    - `ACTIONBOOK_API_KEY` + `ACTIONBOOK_FB_PROFILE_ID` + `ACTIONBOOK_NEXTDOOR_PROFILE_ID`
+    - `ACTIONBOOK_MCP_URL` (default `https://edge.actionbook.dev/mcp`)
+    - `ACTIONBOOK_OAUTH_ISSUER` (default `https://clerk.actionbook.dev` — Actionbook's OAuth provider)
+    - `ACTIONBOOK_OAUTH_REDIRECT_URI` (callback URL — `https://<zeabur-api>/api/integrations/{provider}/oauth/callback`; the `{provider}` literal is interpolated at request time)
+    - `ACTIONBOOK_OAUTH_REGISTERED_CLIENT_ID` (optional — only set this if you've pre-registered Goti with Clerk; otherwise Goti dynamically registers itself via RFC 7591 at first link request)
     - `EVERMIND_API_KEY`
     - `DATABASE_URL` (Postgres on Zeabur)
 
@@ -101,13 +104,30 @@ Each sponsor entry should capture:
 > Unresolved decisions. `/ship-it` re-surfaces these before round 2 of relevant increments.
 
 - **Demo seller coordination** — how many teammates play sellers on second laptops, with what pre-posted listings? Deferred during kickoff: figure out after Streams B + C have a working end-to-end round-trip. Tracked against Stream C's "first real Actionbook send + reply" milestone.
+- **Actionbook MCP tool surface** — Stream B's MCP client + OAuth flow is live; the actual tool names Actionbook exposes (e.g., for sending a marketplace message) are NOT documented and can only be discovered after a real user OAuth + `tools/list` JSON-RPC call. Stream B added a discovery endpoint at `GET /api/integrations/actionbook/tools` to surface them. The negotiator's send path currently guesses `tool_name = f"{marketplace}_send_message"` and surfaces a clear error message + `tools/list` direction if Actionbook rejects with `-32601 Method not found`. **First-test moment** for whoever does the first real Actionbook OAuth.
+- **EverOS Skill extraction trigger** — Confirmed not auto-triggered; no documented `client.v1.skills.extract()` method. Skills appear via `memories.get(memory_type="agent_skill")` once EverOS surfaces them. Treat as eventually-consistent; may need an explicit extract call we haven't found yet. Investigate when the Memory Bank view is wired to live demo data.
+- **AgentField `app.ai()` with custom base URL pointed at TokenRouter** — agent-router doc page returned 404; couldn't confirm if `AIConfig` accepts a base URL override. Stream B uses the openai SDK directly inside reasoners pointed at TokenRouter to guarantee TokenRouter is on the call path. Revisit post-hackathon.
+- **TokenRouter model identifier for GLM-5.1 — confirm at first real boot** — `GLM_MODEL_ID` defaults to `"z-ai/glm-5.1"` (OpenRouter-namespace convention). If TokenRouter rejects, override via `.env` to whatever the docs prescribe (e.g., `"glm-5.1"`).
+- **Dynamic OAuth client registration persistence** — Stream B caches the Clerk-issued `client_id` in-memory only. Container restart triggers a fresh registration (cheap + idempotent per Clerk). For long-running prod, persist to DB via a small `oauth_client_registration` row.
+- **Background seller-reply polling** — `mocks/actionbook.fetch_replies` exists but no scheduler currently polls. The negotiator drafts on demand only. A future increment needs an apscheduler/arq cron to detect replies + re-invoke the negotiator. Required for the live-demo "seller replied → counter draft using BATNA leverage" moment.
+- **Stream C alembic migration version chain** — Stream B added `0002_integration_accounts.py`; Stream C's first migration must use `down_revision = "0002"` (not `"0001"` — this changed when ownership of `integration_accounts` moved from C to B). Surface in team chat when Stream C starts.
+- **Production deploy** — Stream B is locally complete via docker-compose. Zeabur deployment of `api/` is its own future increment (Deployment section still TBD on exact Zeabur command).
+- **`listings_cache` table** — Stream B's `/api/listings/{id}/negotiate` route currently resolves listing details by scanning the mocks fixtures by `id`. Stream C owns the real `listings_cache` table; Stream B's resolver swaps over at convergence.
 
 > **Decisions resolved during `/kickoff --start` (2026-05-16):**
 >
 > - **Zeabur AI template VTZ4FX feasibility** → resolved: split deploy (Vercel for `web/`, Zeabur for `api/` + Postgres). See Deployment section.
 > - **GLM → Claude routing** → resolved: TokenRouter wired as the LLM gateway from day one; 100% routed to GLM in v1; Claude swap is a config change. No runtime routing logic. See Tech stack AI/LLM.
 > - **EverOS pre-seed** → resolved: skip pre-seed; Memory Bank populates from live demo negotiations only. See MVP acceptance criteria.
-> - **Actionbook session capture flow** → resolved: build the real Actionbook session-import flow. UX details owned by Stream C during first `/ship-it` round on integrations.
+> - **Actionbook session capture flow** → resolved during Stream B increment 1 (2026-05-16): Actionbook is a hosted MCP server (`https://edge.actionbook.dev/mcp`) with OAuth authentication via Clerk (`https://clerk.actionbook.dev`). RFC 7591 dynamic client registration is supported (Goti registers itself at runtime; no pre-arranged client credentials needed). PKCE S256 required. The per-user OAuth flow IS the session-capture flow. Stream B owns the MCP client + OAuth + `integration_accounts` table (FastAPI); Stream C owns the marketplace-verb semantics layered on top.
+>
+> **Decisions resolved during Stream B build-out (2026-05-16):**
+>
+> - **AgentField shared memory** (`app.memory.set/get`) → exercised. Async `(key, data)` positional signature confirmed against `agentfield 0.1.84`. Used as BATNA state bus by coordinator + negotiator reasoners.
+> - **AgentField `app.pause()`** → exercised. Returns `ApprovalResult` dataclass with `decision ∈ {"approved", "rejected", "request_changes", "expired", "error"}` + `feedback` (carries user's edited text). Negotiator reasoner has a `skip_pause: bool` param — FastAPI orchestration calls with `skip_pause=True` and orchestrates the approval lifecycle via Postgres (because af-server's resume API has no documented external HTTP endpoint — pause/resume is webhook-mediated control-plane↔agent). Default `app.pause()` path preserved for direct af-server invocations.
+> - **AgentField reasoners (4 of 4 sponsor depth)** → all four shipped on a shared `Agent(node_id="goti")`: `clarifier`, `valuation`, `negotiator`, `coordinator`.
+> - **Token storage table ownership** → moved from Stream C to Stream B. Stream B owns `integration_accounts(user_id, provider, access_token, refresh_token, token_expires_at, scopes, linked_at, status)` via Alembic `0002_integration_accounts.py`. Stream B writes on OAuth callback, reads when minting MCP requests.
+> - **SSE for `GET /api/jobs/{job_id}/stream`** → DB-polling-based real implementation. ~500ms poll, yields `event: state` on diffs, `event: ping` heartbeat every 30s, exits on `ClientDisconnect`.
 
 ## Other hard constraints
 
@@ -160,33 +180,37 @@ Architectural implications:
 - `app.pause()` HITL primitive driving every approval card
 - All LLM calls routed through TokenRouter (100% to GLM-5.1 in v1)
 - EverOS integration: Cases written on negotiation completion; Skills read before the negotiator drafts
+- **Actionbook MCP client + OAuth flow.** FastAPI hosts the MCP-client lifecycle. Owns `POST /api/integrations/{provider}/link` (OAuth init) + `GET /api/integrations/{provider}/oauth/callback`. Reads/writes Stream-C-owned `integration_accounts` table to store OAuth tokens per user. Exposes a thin `mcp_client.call_tool(name, args)` seam that the negotiator agent uses for outbound actions.
 - Postgres models for jobs, threads, approval queue (schema co-owned with Stream C)
 
 **Develops against:** mocked externals (`api/mocks/discovery.py`, `api/mocks/actionbook.py`) so agents run without real Bright Data or Actionbook calls. `GOTI_USE_MOCKS=1` env-var flips it.
 
-**First `/ship-it` increment:** FastAPI hello-world + 1 AgentField reasoner agent + 1 GLM call through TokenRouter + stub endpoints returning hardcoded JSON matching the API contract. End state: `curl localhost:8000/api/goals` returns the same shape Stream A is mocking; one agent runs end-to-end against GLM and writes a stubbed Case.
+**First `/ship-it` increment (✅ shipped 2026-05-16):** FastAPI + 1 AgentField reasoner (`clarifier`) + 1 GLM call via TokenRouter + 12 contract endpoints (1 wired, 11 stubs) + Alembic schema (jobs / message_threads / approval_queue) + docker-compose.
 
-**Sponsor depth owned by Stream B:** AgentField (≥4 reasoners + shared memory + pause/resume), Z.AI (GLM-5.1), TokenRouter (gateway for every LLM call), EverOS (Cases + Skills wiring).
+**Stream B build-out (✅ shipped 2026-05-16 — Passes 1/2/3 in one session):**
+- **Pass 1 — agent topology:** 4 reasoners total (`clarifier`, `valuation`, `negotiator`, `coordinator`) on a shared `Agent(node_id="goti")`. Shared memory `(user_budget:{user_id}, batna:{user_id}, job:{id}:state)` exercised by coordinator + negotiator. `app.pause()` exercised by negotiator (default path). Mocks `api/mocks/discovery.py` + `api/mocks/actionbook.py` land for offline testability.
+- **Pass 2 — DB-backed routes + SSE + EverOS:** all 4 stub routes replaced (`POST /listings/{id}/negotiate`, `GET /jobs`, `GET /jobs/{id}`, `POST /approvals`). Real DB-polling SSE at `GET /jobs/{id}/stream`. Real EverOS reads at `GET /memory/cases + /memory/skills` (graceful degrade on missing key). Per-job Case write on close via `memory_store.write_case_on_completion`. AgentField pause/resume API discovered to be webhook-mediated (no external resume HTTP endpoint); pragmatic workaround: negotiator gets `skip_pause: bool`; FastAPI orchestrates approval lifecycle via Postgres.
+- **Pass 3 — real Actionbook MCP + Clerk OAuth:** real OAuth flow with PKCE S256 + RFC 7591 dynamic client registration (no pre-arranged credentials needed — Goti registers itself at first link); real MCP-over-HTTP JSON-RPC client with Bearer auth + session caching + 401-refresh-retry. Token persistence via Alembic `0002_integration_accounts.py`. Approval-route real-MCP dispatch when `GOTI_USE_MOCKS=0`. Tool-discovery admin endpoint `GET /api/integrations/actionbook/tools`. Live-tested against `clerk.actionbook.dev/oauth/register` (succeeded).
+
+**Sponsor depth owned by Stream B (all hit):** AgentField (4 reasoners + shared memory + pause), Z.AI (GLM-5.1 via TokenRouter), TokenRouter (gateway for every LLM call; `GLM_MODEL_ID=z-ai/glm-5.1` default), EverOS (Cases write + Cases/Skills read), **Actionbook OAuth + MCP client transport** (full Clerk OAuth + Bearer-auth MCP client; tool-name discovery is the dev's first-test moment).
 
 ---
 
 ### Stream C — External integrations + data
 
-**Owns:** `api/integrations/` (Bright Data, Actionbook) + Postgres schema + `api/mocks/` fixtures.
+**Owns:** `api/integrations/` (Bright Data discovery + Actionbook agent-driving logic) + the Stream-C portion of the Postgres schema + `api/mocks/` fixtures.
 
 **Scope:**
 - **Bright Data discovery:** scrapers for FB Marketplace, Nextdoor, OfferUp, Craigslist. Aggregated into a uniform `Listing` shape. ≥3 marketplaces shown in demo.
-- **Actionbook FB Marketplace driver:** send message + fetch replies for a listing thread.
-- **Actionbook Nextdoor driver:** same, for Nextdoor.
-- **Real Actionbook session-import flow** (resolution of original Open Q4): implement whatever Actionbook's session-capture API offers so a Goti user can link their FB / Nextdoor account. Owns the `POST /api/integrations/{provider}/link` endpoint that Stream A's UI buttons call. Investigate Actionbook's API in first round; document the chosen approach in SPEC.md then.
-- **`GOTI_USE_MOCKS=1` env-var gate** that swaps real integrations for deterministic fixtures so Streams A + B can develop offline.
-- **Postgres schema + migrations** for: users, integration_accounts (FB / Nextdoor session refs), listings_cache, jobs, message_threads, approval_queue.
+- **Actionbook agent-driving logic** — the prompts + tool-sequencing that translate marketplace verbs ("send a message on FB Marketplace for this listing", "fetch replies on a Nextdoor thread") into a sequence of Actionbook MCP browser-automation tool calls. Consumes Stream B's `mcp_client.call_tool(...)` seam. NOTE: Stream B owns the MCP client connection + OAuth flow — Stream C owns the semantics layered on top.
+- **`GOTI_USE_MOCKS=1` env-var gate** that swaps real integrations for deterministic fixtures so Streams A + B can develop offline. Stream B already landed `api/mocks/discovery.py` + `api/mocks/actionbook.py` during its build-out (touching Stream C territory; reconcile here at convergence — Stream C may overwrite with richer fixtures or accept as-is).
+- **Postgres schema + migrations (Stream C portion):** users, listings_cache tables (migrations chained off Stream B's `0002_integration_accounts.py` — `down_revision = "0002"`). NOTE: `integration_accounts` moved from Stream C to Stream B during the OAuth build-out — Stream C no longer owns this table.
 
-**Develops against:** real Bright Data + Actionbook APIs for end-to-end smoke tests; rely on its own mock fixtures during iteration to avoid burning credits.
+**Develops against:** real Bright Data + Actionbook MCP for end-to-end smoke tests; rely on its own mock fixtures during iteration to avoid burning credits.
 
-**First `/ship-it` increment:** Bright Data fetch for 1 marketplace + 1 query → returns `Listing[]` in the agreed shape. Actionbook FB driver sends 1 message + reads 1 reply against a test thread. Mock-externals module exposes the same interface with hardcoded responses. Postgres schema lands: users, integration_accounts, listings_cache tables (migrations checked in).
+**First `/ship-it` increment:** Bright Data fetch for 1 marketplace + 1 query → returns `Listing[]` in the agreed shape. Investigate Actionbook's MCP tool surface (what tools does `edge.actionbook.dev/mcp` expose?) and document in SPEC.md. Prototype 1 agent-driving sequence ("send a message on FB Marketplace") using Stream B's mcp_client seam against a mocked MCP server. Mock-externals module exposes the same interface with hardcoded responses. Stream C migrations land: users, integration_accounts, listings_cache tables.
 
-**Sponsor depth owned by Stream C:** Bright Data (≥3 marketplaces in demo), Actionbook (FB + Nextdoor drivers + real session-import).
+**Sponsor depth owned by Stream C:** Bright Data (≥3 marketplaces in demo), Actionbook (agent-driving prompts + tool-sequences that complete a negotiation round-trip per platform; the OAuth + MCP transport is Stream B's).
 
 ---
 
@@ -211,22 +235,32 @@ Architectural implications:
 
 **Shared types** live in `api/contracts.py` (Pydantic) and `web/types.ts` (TypeScript — hand-mirrored or generated, pick one early in Stream A's first round): `Listing`, `Job`, `ApprovalCard`, `Message`, `Case`, `Skill`, `IntegrationAccount`.
 
-**B ↔ C (Python).** Stream C owns these signatures; Stream B consumes them:
+**B ↔ C (Python).** Two shapes — discovery (Stream C owns) and Actionbook (split ownership):
 
 ```python
+# Discovery — Stream C owns this signature; Stream B consumes.
 # api/integrations/discovery.py
 def search(query: str, marketplaces: list[str], max_per_source: int = 10) -> list[Listing]: ...
-
-# api/integrations/actionbook/fb.py
-def send_message(profile_id: str, listing_id: str, message_text: str) -> MessageId: ...
-def fetch_replies(profile_id: str, listing_id: str, since_ts: float) -> list[Reply]: ...
-
-# api/integrations/actionbook/nextdoor.py
-def send_message(profile_id: str, listing_id: str, message_text: str) -> MessageId: ...
-def fetch_replies(profile_id: str, listing_id: str, since_ts: float) -> list[Reply]: ...
 ```
 
-`GOTI_USE_MOCKS=1` flips all three modules to `api/mocks/*.py` fixtures. Stream B sets this in local dev; Stream C maintains the fixtures next to the real implementations.
+**Actionbook (MCP+OAuth, split ownership):**
+
+- **Stream B owns** the MCP client connection + OAuth flow (lives in FastAPI). Exposes to agents:
+  ```python
+  # api/integrations/actionbook/client.py  (Stream B owns)
+  async def call_tool(user_id: str, tool_name: str, args: dict) -> dict: ...
+  ```
+  Internally: loads OAuth tokens from `integration_accounts` for `user_id`, opens an MCP session against `ACTIONBOOK_MCP_URL`, invokes the tool, returns the response.
+
+- **Stream C owns** the marketplace-verb semantics — Python wrappers that translate "send a message on FB Marketplace for this listing" into a sequence of Actionbook MCP `call_tool(...)` invocations. The exact wrapper shape is **TBD pending Stream C's investigation of Actionbook's MCP tool surface in their first `/ship-it` round** (see Open Questions). Likely shape:
+  ```python
+  # api/integrations/actionbook/fb.py  (Stream C owns — shape TBD)
+  async def send_message(user_id: str, listing_id: str, message_text: str) -> MessageId: ...
+  async def fetch_replies(user_id: str, listing_id: str, since_ts: float) -> list[Reply]: ...
+  # (parallel module for nextdoor.py)
+  ```
+
+`GOTI_USE_MOCKS=1` flips both shapes to `api/mocks/*.py` fixtures. Stream C maintains the fixtures (including an in-memory mock MCP server for the Actionbook path) next to the real implementations.
 
 **A ↔ C:** no direct calls. UI → REST (B) → Python (C).
 

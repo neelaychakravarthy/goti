@@ -1,0 +1,69 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: goti
+      POSTGRES_PASSWORD: goti
+      POSTGRES_DB: goti
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U goti -d goti"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  af-server:
+    build:
+      context: ./api
+      dockerfile: Dockerfile.afserver
+    ports:
+      - "8080:8080"
+    environment:
+      # Passed through so AgentField's own routing layer (if invoked) has the
+      # right creds — though Goti reasoners route LLM calls via TokenRouter
+      # in api/llm.py, not via AgentField's built-in ai().
+      TOKENROUTER_API_KEY: ${TOKENROUTER_API_KEY:-}
+      Z_AI_API_KEY: ${Z_AI_API_KEY:-}
+
+  api:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+      af-server:
+        condition: service_started
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./api:/app/api
+    environment:
+      DATABASE_URL: postgresql+asyncpg://goti:goti@postgres:5432/goti
+      AF_CONTROL_PLANE_URL: http://af-server:8080
+      TOKENROUTER_API_KEY: ${TOKENROUTER_API_KEY:-}
+      EVEROS_API_KEY: ${EVEROS_API_KEY:-}
+      Z_AI_API_KEY: ${Z_AI_API_KEY:-}
+      GOTI_USE_MOCKS: ${GOTI_USE_MOCKS:-0}
+      GLM_MODEL_ID: ${GLM_MODEL_ID:-z-ai/glm-5.1}
+      ACTIONBOOK_MCP_URL: ${ACTIONBOOK_MCP_URL:-https://edge.actionbook.dev/mcp}
+      ACTIONBOOK_OAUTH_ISSUER: ${ACTIONBOOK_OAUTH_ISSUER:-https://clerk.actionbook.dev}
+      ACTIONBOOK_OAUTH_REDIRECT_URI: ${ACTIONBOOK_OAUTH_REDIRECT_URI:-http://localhost:8000/api/integrations/{provider}/oauth/callback}
+      ACTIONBOOK_OAUTH_REGISTERED_CLIENT_ID: ${ACTIONBOOK_OAUTH_REGISTERED_CLIENT_ID:-}
+      PYTHONPATH: /app
+    # Run uvicorn (FastAPI) + the AgentField reasoner sidecar in one container.
+    # The reasoner registers with af-server then long-polls; uvicorn serves
+    # :8000 in the foreground. `wait -n` exits if either dies so docker
+    # restarts the container.
+    command: >
+      sh -c "python -m api.agents.clarifier &
+             uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload &
+             wait -n"
+
+volumes:
+  postgres_data:
