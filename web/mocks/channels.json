@@ -1,0 +1,26 @@
+[
+  {
+    "marketplace": "facebook",
+    "name": "Facebook Marketplace",
+    "status": "messages ready",
+    "state": "connected"
+  },
+  {
+    "marketplace": "nextdoor",
+    "name": "Nextdoor",
+    "status": "messages ready",
+    "state": "connected"
+  },
+  {
+    "marketplace": "offerup",
+    "name": "OfferUp",
+    "status": "messages ready",
+    "state": "available"
+  },
+  {
+    "marketplace": "craigslist",
+    "name": "Craigslist",
+    "status": "search only",
+    "state": "available"
+  }
+]

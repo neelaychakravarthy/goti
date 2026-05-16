@@ -1,0 +1,38 @@
+[
+  {
+    "id": "ap-uplift",
+    "recipient_name": "Daniel",
+    "marketplace": "facebook",
+    "listing_title": "Uplift V2 desk",
+    "ask_price": 205,
+    "draft_text": "Thanks — I'm interested, but I have another similar desk nearby at $195. If you can do $205 and pickup today, I can come by this afternoon.",
+    "why_text": "FlexiSpot seller accepted $195. Uplift has been listed 14 days and dropped from $300.",
+    "expected_outcome": "High chance of $205–$215 counter",
+    "status": "waiting",
+    "selected": true
+  },
+  {
+    "id": "ap-vari",
+    "recipient_name": "Ari",
+    "marketplace": "offerup",
+    "listing_title": "Vari Electric desk",
+    "ask_price": 195,
+    "draft_text": "Hi — I can pick this up today if the desk is still available. Would you be open to $195 for a quick pickup?",
+    "why_text": "Fresh listing. Same-day pickup is the strongest angle, not a hard lowball.",
+    "expected_outcome": "Likely yes/no quickly",
+    "status": "selected",
+    "selected": true
+  },
+  {
+    "id": "ap-jarvis",
+    "recipient_name": "Craigslist seller",
+    "marketplace": "craigslist",
+    "listing_title": "Jarvis bamboo desk",
+    "ask_price": 210,
+    "draft_text": "Hi, I'm interested in the Jarvis desk. If it's still available, would you consider $210? I can coordinate pickup around your schedule.",
+    "why_text": "Good price, but less seller history. Keep it polite and avoid over-sharing.",
+    "expected_outcome": "Backup option if top two fail",
+    "status": "lower_priority",
+    "selected": false
+  }
+]

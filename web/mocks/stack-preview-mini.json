@@ -1,0 +1,11 @@
+{
+  "listings_found": 12,
+  "worth_messaging": 4,
+  "best_likely_close": "$195–$210",
+  "messages_sent": 0,
+  "ranked": [
+    { "title": "FlexiSpot E7", "likely_close": 195, "marketplace": "nextdoor" },
+    { "title": "Uplift V2", "likely_close": 205, "marketplace": "facebook" },
+    { "title": "Vari Electric", "likely_close": 200, "marketplace": "offerup" }
+  ]
+}

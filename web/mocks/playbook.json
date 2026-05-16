@@ -1,0 +1,45 @@
+{
+  "new_learning": {
+    "body": "Same-day pickup makes $205 believable."
+  },
+  "cases": [
+    {
+      "case_id": "case-001",
+      "title": "Uplift V2 desk",
+      "location": "San Francisco",
+      "start_price": 240,
+      "closed_price": 205,
+      "saved": 35,
+      "tactic_learned": "Friendly comparable-offer anchor + same-day pickup",
+      "seller_pattern": "Moving-sale sellers listed 10+ days are flexible when pickup is simple.",
+      "learning_attached": "Same-day pickup made a $205 offer believable."
+    },
+    {
+      "case_id": "case-002",
+      "title": "Used camera lens",
+      "location": "San Jose",
+      "start_price": 420,
+      "closed_price": 365,
+      "saved": 55,
+      "tactic_learned": "Asked for bundle price with immediate pickup",
+      "seller_pattern": "Sellers with detailed photos usually respond better to specific questions."
+    }
+  ],
+  "notes": [
+    {
+      "kind": "message_tactic",
+      "title": "Message tactic",
+      "body": "Open with a comparable offer, then make pickup easy. Sellers reply faster when the next step is clear."
+    },
+    {
+      "kind": "local_price_memory",
+      "title": "Local price memory",
+      "body": "Standing desks in SF close around $195–$215 when listed for 10+ days. Use that band, not the asking price."
+    },
+    {
+      "kind": "trust_signal",
+      "title": "Trust signal",
+      "body": "Verified neighbors and sellers with 10+ sales reply 2× faster. Lead with them when seeding the deal stack."
+    }
+  ]
+}

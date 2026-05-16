@@ -1,0 +1,64 @@
+{
+  "job_id": "j-flexispot",
+  "listing": {
+    "id": "l-flexispot",
+    "title": "FlexiSpot E7 standing desk",
+    "marketplace": "nextdoor",
+    "asking_price": 220,
+    "likely_close": 195,
+    "seller": {
+      "name": "Maya",
+      "avatar_initial": "M",
+      "verified": true
+    },
+    "photos": { "main": "main-l-flexispot", "thumbs": ["t1-l-flexispot", "t2-l-flexispot"] },
+    "location_label": "Dogpatch",
+    "distance_mi": 1.4,
+    "posted_age_days": 3,
+    "pickup_constraint": "Can pickup before Friday",
+    "condition": "Good · light scratches",
+    "rank_label": "Best leverage",
+    "why_ranked": "A reply from this seller helps negotiate the better desk."
+  },
+  "seller_check": {
+    "history": "Verified neighbor",
+    "location": "Dogpatch · nearby",
+    "risk": "Low pickup risk"
+  },
+  "conversation": [
+    {
+      "from": "goti_draft",
+      "at": "11:50",
+      "text": "Hi Maya — interested in the FlexiSpot. Would $195 work for pickup before Friday?",
+      "status": "sent"
+    },
+    {
+      "from": "seller",
+      "speaker": "Maya",
+      "at": "12:02",
+      "text": "Yes, $195 works if you can come by Thursday evening.",
+      "status": "sent"
+    }
+  ],
+  "safety_banner_after": "12:02",
+  "next_move": {
+    "job_id": "j-flexispot",
+    "headline": "Goti's next move",
+    "sub": "Confirm pickup",
+    "price_ladder": {
+      "your_max": 250,
+      "seller_asks": 220,
+      "goti_recommends": 195,
+      "competing_seller": 205
+    },
+    "plain_english": "Maya already accepted $195. Lock the pickup window so Uplift can be used as leverage.",
+    "savings": { "pay": 195, "save_vs_asking": 25, "under_budget": 55 },
+    "draft": "Thanks Maya — Thursday at 6pm works. I'll bring cash. See you then.",
+    "listing_summary": "FlexiSpot E7 standing desk · Nextdoor · asking $220",
+    "seller_check": {
+      "history": "Verified neighbor",
+      "location": "Dogpatch · nearby",
+      "risk": "Low pickup risk"
+    }
+  }
+}

@@ -1,0 +1,23 @@
+[
+  {
+    "id": "nm-s-1",
+    "kind": "discovery_update",
+    "title": "Goti found 4 promising products",
+    "body": "From Facebook Marketplace, Nextdoor, OfferUp, and Craigslist.",
+    "timestamp": "just now"
+  },
+  {
+    "id": "nm-s-2",
+    "kind": "question",
+    "title": "Lowest price or fastest pickup?",
+    "body": "Goti can prioritize Maya's FlexiSpot ($195 likely) for price proof, or Ari's Vari Electric for same-day pickup.",
+    "timestamp": "asynchronous"
+  },
+  {
+    "id": "nm-s-3",
+    "kind": "recommendation",
+    "title": "Pursue FlexiSpot first",
+    "body": "A reply at $195 becomes leverage for the better Uplift desk.",
+    "timestamp": "just now"
+  }
+]

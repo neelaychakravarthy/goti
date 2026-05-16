@@ -1,0 +1,85 @@
+[
+  {
+    "id": "l-flexispot",
+    "title": "FlexiSpot E7 standing desk",
+    "marketplace": "nextdoor",
+    "asking_price": 220,
+    "likely_close": 195,
+    "seller": {
+      "name": "Maya",
+      "avatar_initial": "M",
+      "verified": true
+    },
+    "photos": { "main": "main-l-flexispot", "thumbs": ["t1-l-flexispot", "t2-l-flexispot"] },
+    "location_label": "Dogpatch",
+    "distance_mi": 1.4,
+    "posted_age_days": 3,
+    "pickup_constraint": "Can pickup before Friday",
+    "condition": "Good · light scratches",
+    "rank_label": "Best leverage",
+    "why_ranked": "A reply from this seller helps negotiate the better desk."
+  },
+  {
+    "id": "l-uplift",
+    "title": "Uplift V2 commercial standing desk",
+    "marketplace": "facebook",
+    "asking_price": 240,
+    "likely_close": 205,
+    "retail_range": "$300–$599",
+    "seller": {
+      "name": "Daniel",
+      "avatar_initial": "D",
+      "rating": 4.8,
+      "sales": 11
+    },
+    "photos": { "main": "main-l-uplift", "thumbs": ["t1-l-uplift", "t2-l-uplift"] },
+    "location_label": "Mission Bay",
+    "distance_mi": 0.8,
+    "posted_age_days": 14,
+    "pickup_constraint": "Pickup before Friday",
+    "condition": "Excellent · moving sale",
+    "rank_label": "Best quality",
+    "why_ranked": "Use FlexiSpot's lower price to ask for $205.",
+    "note": "Price dropped from $300 to $240"
+  },
+  {
+    "id": "l-vari",
+    "title": "Vari Electric desk",
+    "marketplace": "offerup",
+    "asking_price": 210,
+    "likely_close": 200,
+    "seller": {
+      "name": "Ari",
+      "avatar_initial": "A",
+      "sales": 21,
+      "reply_speed": "usually replies in 1h"
+    },
+    "photos": { "main": "main-l-vari", "thumbs": ["t1-l-vari", "t2-l-vari"] },
+    "location_label": "Hayes Valley",
+    "distance_mi": 2.7,
+    "posted_age_days": 1,
+    "pickup_constraint": "Lobby pickup",
+    "condition": "Good · pickup today",
+    "rank_label": "Fastest pickup",
+    "why_ranked": "Fresh listing, but pickup today may win without much discounting."
+  },
+  {
+    "id": "l-jarvis",
+    "title": "Jarvis bamboo desk",
+    "marketplace": "craigslist",
+    "asking_price": 235,
+    "likely_close": 215,
+    "seller": {
+      "name": "private seller (email-only)",
+      "avatar_initial": "P"
+    },
+    "photos": { "main": "main-l-jarvis", "thumbs": ["t1-l-jarvis", "t2-l-jarvis"] },
+    "location_label": "SOMA",
+    "distance_mi": 2.1,
+    "posted_age_days": 8,
+    "pickup_constraint": "Cash pickup, public place",
+    "condition": "Very good · no chair",
+    "rank_label": "Backup option",
+    "why_ranked": "Good value, but weaker trust signals than the top options."
+  }
+]

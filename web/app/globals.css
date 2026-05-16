@@ -1,0 +1,256 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Goti — paper-toned marketplace buyer tool.
+ * Off-white paper base, sharp ink, yellow price tags, orange action,
+ * green for trust/safety, dark panels reserved for hero moments.
+ */
+:root {
+  --paper:        #F7F2E8;
+  --paper-2:      #EFE9D9;
+  --paper-3:      #E6DFC8;
+  --ink:          #0F0F0F;
+  --ink-2:        #4A4A4A;
+  --ink-3:        #7A7A7A;
+  --ink-line:     #1A1A1A;
+
+  --panel-dark:   #111111;
+  --panel-dark-2: #1A1A1A;
+
+  --yellow:       #FFD84D;
+  --yellow-deep:  #E8B800;
+  --green:        #2F9D5C;
+  --green-soft:   #DCEFE2;
+  --orange:       #FF6A2D;
+  --orange-soft:  #FFE2D2;
+
+  --mk-facebook:    #1877F2;
+  --mk-nextdoor:    #00A05A;
+  --mk-offerup:     #2EB66B;
+  --mk-craigslist:  #5A4BB8;
+  --mk-ebay:        #E53238;
+  --mk-mercari:     #4A4FB5;
+  --mk-poshmark:    #802C8E;
+  --mk-depop:       #FF2300;
+  --mk-local:       #6B6B6B;
+
+  --yellow-soft:    #FFF3C9;
+
+  --radius: 14px;
+
+  /* shadcn variable overrides — mapped to the paper palette. */
+  --background: var(--paper);
+  --foreground: var(--ink);
+  --card: var(--paper-2);
+  --card-foreground: var(--ink);
+  --popover: var(--paper-2);
+  --popover-foreground: var(--ink);
+  --primary: var(--ink);
+  --primary-foreground: var(--paper);
+  --secondary: var(--paper-2);
+  --secondary-foreground: var(--ink);
+  --muted: var(--paper-2);
+  --muted-foreground: var(--ink-3);
+  --accent: var(--orange);
+  --accent-foreground: var(--paper);
+  --destructive: #b1432b;
+  --border: var(--ink-line);
+  --input: var(--paper-3);
+  --ring: var(--orange);
+  --chart-1: var(--orange);
+  --chart-2: var(--green);
+  --chart-3: var(--yellow);
+  --chart-4: var(--ink-2);
+  --chart-5: var(--ink-3);
+  --sidebar: var(--paper);
+  --sidebar-foreground: var(--ink);
+  --sidebar-primary: var(--orange);
+  --sidebar-primary-foreground: var(--paper);
+  --sidebar-accent: var(--paper-2);
+  --sidebar-accent-foreground: var(--ink);
+  --sidebar-border: var(--paper-3);
+  --sidebar-ring: var(--orange);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* Goti palette as utility tokens */
+  --color-paper: var(--paper);
+  --color-paper-2: var(--paper-2);
+  --color-paper-3: var(--paper-3);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-ink-line: var(--ink-line);
+  --color-panel-dark: var(--panel-dark);
+  --color-panel-dark-2: var(--panel-dark-2);
+  --color-yellow: var(--yellow);
+  --color-yellow-deep: var(--yellow-deep);
+  --color-green: var(--green);
+  --color-green-soft: var(--green-soft);
+  --color-orange: var(--orange);
+  --color-orange-soft: var(--orange-soft);
+  --color-mk-facebook: var(--mk-facebook);
+  --color-mk-nextdoor: var(--mk-nextdoor);
+  --color-mk-offerup: var(--mk-offerup);
+  --color-mk-craigslist: var(--mk-craigslist);
+  --color-mk-ebay: var(--mk-ebay);
+  --color-mk-mercari: var(--mk-mercari);
+  --color-mk-poshmark: var(--mk-poshmark);
+  --color-mk-depop: var(--mk-depop);
+  --color-mk-local: var(--mk-local);
+  --color-yellow-soft: var(--yellow-soft);
+
+  /* Custom type scale — sized for a calm marketplace buyer tool. */
+  --text-display-hero: 56px;
+  --text-display-hero--line-height: 1.0;
+  --text-display-hero--letter-spacing: -0.02em;
+  --text-display-1: 44px;
+  --text-display-1--line-height: 1.05;
+  --text-display-1--letter-spacing: -0.015em;
+  --text-display-2: 32px;
+  --text-display-2--line-height: 1.1;
+  --text-display-2--letter-spacing: -0.01em;
+  --text-headline: 22px;
+  --text-headline--line-height: 1.2;
+  --text-headline--letter-spacing: -0.005em;
+  --text-subhead: 18px;
+  --text-subhead--line-height: 1.35;
+  --text-body: 15px;
+  --text-body--line-height: 1.5;
+  --text-caption: 13px;
+  --text-caption--line-height: 1.4;
+  --text-micro: 12px;
+  --text-micro--line-height: 1.35;
+  --text-micro--letter-spacing: 0.04em;
+
+  --font-display: var(--font-display);
+  --font-sans: var(--font-body);
+  --font-body: var(--font-body);
+  --font-mono: var(--font-mono);
+  --font-heading: var(--font-display);
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+  --radius-2xl: 20px;
+  --radius-3xl: 24px;
+  --radius-4xl: 32px;
+}
+
+@layer base {
+  html {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+  }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  ::selection {
+    background: var(--orange);
+    color: var(--paper);
+  }
+}
+
+/* Subtle paper noise for marketplace photo placeholders. */
+.paper-noise {
+  background-image:
+    radial-gradient(rgba(15,15,15,0.04) 1px, transparent 1px),
+    radial-gradient(rgba(15,15,15,0.03) 1px, transparent 1px);
+  background-size: 6px 6px, 13px 13px;
+  background-position: 0 0, 3px 5px;
+}
+
+/*
+ * Async-feeling animations for the discovery feed.
+ * - Shimmer: skeleton cards while Goti scans marketplaces.
+ * - Pulse dot: the live "Goti is checking…" status indicator.
+ * - Card in: gentle fade + lift for each newly-discovered product.
+ */
+@keyframes goti-shimmer {
+  0%   { background-color: var(--paper-2); }
+  50%  { background-color: var(--paper-3); }
+  100% { background-color: var(--paper-2); }
+}
+.goti-shimmer {
+  animation: goti-shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes goti-pulse-dot {
+  0%   { transform: scale(1);   opacity: 0.9; }
+  50%  { transform: scale(1.4); opacity: 0.35; }
+  100% { transform: scale(1);   opacity: 0.9; }
+}
+.goti-pulse-dot {
+  animation: goti-pulse-dot 1.2s ease-in-out infinite;
+}
+
+@keyframes goti-card-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.goti-card-in {
+  animation: goti-card-in 280ms ease-out both;
+}
+
+/*
+ * Marquee for the marketplace logos strip on /start. Two side-by-side copies
+ * of the same row translate -50% to create a seamless infinite scroll. Fade
+ * masks on both edges sell the loop. Hovering the container pauses motion.
+ */
+@keyframes goti-marquee {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.goti-marquee-track {
+  animation: goti-marquee 30s linear infinite;
+  will-change: transform;
+}
+.goti-marquee-mask {
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black 10%,
+    black 90%,
+    transparent 100%
+  );
+          mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black 10%,
+    black 90%,
+    transparent 100%
+  );
+}
+.goti-marquee-pause:hover .goti-marquee-track {
+  animation-play-state: paused;
+}
