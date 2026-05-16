@@ -1,0 +1,8 @@
+[
+  { "t_ms": 0,    "status_text": "Searching Facebook Marketplace…" },
+  { "t_ms": 900,  "status_text": "Checking Nextdoor",                "appears_listing_id": "l-flexispot" },
+  { "t_ms": 1800, "status_text": "Scanning OfferUp",                 "appears_listing_id": "l-uplift" },
+  { "t_ms": 2700, "status_text": "Checking Craigslist",              "appears_listing_id": "l-vari" },
+  { "t_ms": 3600, "status_text": "Removing IKEA results",            "appears_listing_id": "l-jarvis" },
+  { "t_ms": 4500, "status_text": "12 listings found · 4 worth pursuing" }
+]

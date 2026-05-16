@@ -1,0 +1,7 @@
+{
+  "item": "standing desk",
+  "max_price": 250,
+  "near": "San Francisco",
+  "avoid": "IKEA",
+  "pickup_timing": "today or tomorrow"
+}

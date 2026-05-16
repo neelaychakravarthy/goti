@@ -1,0 +1,23 @@
+[
+  {
+    "id": "nm-c-1",
+    "kind": "recommendation",
+    "title": "Pursue FlexiSpot first for price proof",
+    "body": "Maya is closest and most likely to land near $195. Use that reply as leverage for the better Uplift desk.",
+    "timestamp": "just now"
+  },
+  {
+    "id": "nm-c-2",
+    "kind": "recommendation",
+    "title": "Pursue Uplift next — it's the better desk",
+    "body": "Daniel's listing has been up 14 days and dropped from $300. A polite $205 with FlexiSpot proof should land.",
+    "timestamp": "just now"
+  },
+  {
+    "id": "nm-c-3",
+    "kind": "risk_check",
+    "title": "Craigslist seller has weaker trust signals",
+    "body": "Email-only contact, no sales history. Worth a polite first message, but lower priority.",
+    "timestamp": "just now"
+  }
+]

@@ -1,0 +1,74 @@
+{
+  "job_id": "j-uplift",
+  "listing": {
+    "id": "l-uplift",
+    "title": "Uplift V2 commercial standing desk",
+    "marketplace": "facebook",
+    "asking_price": 240,
+    "likely_close": 205,
+    "retail_range": "$300–$599",
+    "seller": {
+      "name": "Daniel",
+      "avatar_initial": "D",
+      "rating": 4.8,
+      "sales": 11
+    },
+    "photos": { "main": "main-l-uplift", "thumbs": ["t1-l-uplift", "t2-l-uplift"] },
+    "location_label": "Mission Bay",
+    "distance_mi": 0.8,
+    "posted_age_days": 14,
+    "pickup_constraint": "Pickup before Friday",
+    "condition": "Excellent · moving sale",
+    "rank_label": "Best quality",
+    "why_ranked": "Use FlexiSpot's lower price to ask for $205.",
+    "note": "Price dropped from $300 to $240"
+  },
+  "seller_check": {
+    "history": "11 sales · 4.8★",
+    "location": "Mission Bay · nearby",
+    "risk": "Normal pickup risk"
+  },
+  "conversation": [
+    {
+      "from": "seller",
+      "speaker": "Daniel",
+      "at": "12:42",
+      "text": "Yes, it's still available. I can do $240 if you pick it up today.",
+      "status": "sent"
+    },
+    {
+      "from": "goti_draft",
+      "at": "12:44",
+      "text": "Thanks — I'm comparing a few similar desks nearby before deciding.",
+      "status": "sent"
+    },
+    {
+      "from": "seller",
+      "speaker": "Daniel",
+      "at": "12:46",
+      "text": "No problem. Let me know — I have someone else asking too.",
+      "status": "sent"
+    }
+  ],
+  "safety_banner_after": "12:44",
+  "next_move": {
+    "job_id": "j-uplift",
+    "headline": "Goti's next move",
+    "sub": "Offer $205",
+    "price_ladder": {
+      "your_max": 250,
+      "seller_asks": 240,
+      "goti_recommends": 205,
+      "competing_seller": 195
+    },
+    "plain_english": "Another seller already gave us $195, so $205 is firm but reasonable.",
+    "savings": { "pay": 205, "save_vs_asking": 35, "under_budget": 45 },
+    "draft": "Thanks — I'm interested, but I have another similar desk nearby at $195. If you can do $205 and pickup today, I can come by this afternoon.",
+    "listing_summary": "Uplift V2 commercial standing desk · Facebook Marketplace · asking $240",
+    "seller_check": {
+      "history": "11 sales · 4.8★",
+      "location": "Mission Bay · nearby",
+      "risk": "Normal pickup risk"
+    }
+  }
+}
