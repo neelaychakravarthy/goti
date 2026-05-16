@@ -1,0 +1,56 @@
+{
+  "_comment": "Copy this to .claude/settings.json in your hackathon project root. The /kickoff skill does this automatically. Edit the allow list to fit your project's tech stack.",
+  "permissions": {
+    "allow": [
+      "Bash(git log:*)",
+      "Bash(git diff:*)",
+      "Bash(git status:*)",
+      "Bash(git blame:*)",
+      "Bash(git show:*)",
+      "Bash(git rev-parse:*)",
+      "Bash(git branch:*)",
+      "Bash(git remote:*)",
+      "Bash(ls:*)",
+      "Bash(cat:*)",
+      "Bash(grep:*)",
+      "Bash(find:*)",
+      "Bash(gh pr view:*)",
+      "Bash(gh pr list:*)",
+      "Bash(gh pr comment:*)",
+      "Bash(gh api graphql:*)",
+      "Bash(gh issue view:*)",
+      "Bash(gh issue list:*)"
+    ]
+  },
+  "_examples": {
+    "_doc": "Common additions per tech stack — un-comment / move into permissions.allow as needed for your project.",
+    "node": [
+      "Bash(npm install:*)",
+      "Bash(npm run:*)",
+      "Bash(npm test:*)",
+      "Bash(npx:*)",
+      "Bash(node:*)",
+      "Bash(pnpm:*)",
+      "Bash(bun:*)"
+    ],
+    "python": [
+      "Bash(pip install:*)",
+      "Bash(python:*)",
+      "Bash(python3:*)",
+      "Bash(pytest:*)",
+      "Bash(uv:*)",
+      "Bash(poetry:*)"
+    ],
+    "rust": [
+      "Bash(cargo:*)",
+      "Bash(rustc:*)"
+    ],
+    "go": [
+      "Bash(go:*)"
+    ],
+    "docker": [
+      "Bash(docker build:*)",
+      "Bash(docker compose:*)"
+    ]
+  }
+}
