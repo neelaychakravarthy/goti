@@ -105,6 +105,7 @@ Each sponsor entry should capture:
 > Unresolved decisions. `/ship-it` re-surfaces these before round 2 of relevant increments.
 
 - **Demo seller coordination** — how many teammates play sellers on second laptops, with what pre-posted listings? Deferred during kickoff: figure out after Streams B + C have a working end-to-end round-trip. Tracked against Stream C's "first real Actionbook send + reply" milestone.
+- **Actionbook session-capture API mechanism** — what does Actionbook offer for linking a user's FB / Nextdoor browser session (OAuth redirect / cookie injection / profile-ID handshake / hosted-UI)? Drives the `POST /api/integrations/{provider}/link` endpoint shape and the real `send_message` / `fetch_replies` implementations. Spike is the primary task of Stream C round 3.
 
 > **Decisions resolved during `/kickoff --start` (2026-05-16):**
 >
@@ -189,6 +190,8 @@ Architectural implications:
 **Develops against:** real Bright Data + Actionbook APIs for end-to-end smoke tests; rely on its own mock fixtures during iteration to avoid burning credits.
 
 **First `/ship-it` increment:** Bright Data fetch for 1 marketplace + 1 query → returns `Listing[]` in the agreed shape. Actionbook FB driver sends 1 message + reads 1 reply against a test thread. Mock-externals module exposes the same interface with hardcoded responses. Postgres schema lands: users, integration_accounts, listings_cache tables (migrations checked in).
+
+**Round 2 status (commit pending):** Actionbook FB + Nextdoor driver surface created in `api/integrations/actionbook/{fb,nextdoor}.py`; both raise `NotImplementedError` on the real path. Fully-functional stateless mock in `api/mocks/actionbook.py` lets Stream B develop against `GOTI_USE_MOCKS=1`. Real path + session-import endpoint pending the Actionbook session-capture API spike (next Stream C round).
 
 **Sponsor depth owned by Stream C:** Bright Data (≥3 marketplaces in demo), Actionbook (FB + Nextdoor drivers + real session-import).
 
