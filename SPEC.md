@@ -193,6 +193,8 @@ Architectural implications:
 
 **Round 2 status (commit pending):** Actionbook FB + Nextdoor driver surface created in `api/integrations/actionbook/{fb,nextdoor}.py`; both raise `NotImplementedError` on the real path. Fully-functional stateless mock in `api/mocks/actionbook.py` lets Stream B develop against `GOTI_USE_MOCKS=1`. Real path + session-import endpoint pending the Actionbook session-capture API spike (next Stream C round).
 
+**Round 3 status (commit pending):** Bright Data scrapers added for Nextdoor + OfferUp + Craigslist (`api/integrations/bright_data/{nextdoor,offerup,craigslist}.py`). With FB Marketplace from round 1, all 4 marketplaces are code-wired (real + mock) via the shared `_DATASET_ENV` + `_PARSERS` registry in `api/integrations/bright_data/client.py`. Sponsor depth ("≥3 marketplaces shown in the demo") is code-complete; verification pending the dev's live smoke run (`pytest -m live` against all 4 dataset IDs). Round-1 endpoint URL TODO + FB payload shape get resolved by the same verification run.
+
 **Sponsor depth owned by Stream C:** Bright Data (≥3 marketplaces in demo), Actionbook (FB + Nextdoor drivers + real session-import).
 
 ---

@@ -27,6 +27,9 @@ class Settings(BaseSettings):
     bright_data_api_key: Optional[str] = None
     bright_data_zone: Optional[str] = None
     bright_data_fb_dataset_id: Optional[str] = None
+    bright_data_nextdoor_dataset_id: Optional[str] = None
+    bright_data_offerup_dataset_id: Optional[str] = None
+    bright_data_craigslist_dataset_id: Optional[str] = None
 
     # Other sponsor keys (read but not used in Stream C round 1; here so
     # `Settings()` doesn't choke on a real .env that includes them).

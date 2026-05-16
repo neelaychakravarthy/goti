@@ -35,10 +35,31 @@ async def test_mock_respects_max_per_source(use_mocks):
 
 @pytest.mark.asyncio
 async def test_mock_skips_unwired_marketplaces(use_mocks):
-    # Asking for fb + nextdoor returns only the 3 fb rows; nextdoor mock is empty.
-    results = await discovery.search("desk", ["fb", "nextdoor"], max_per_source=10)
+    # Asking for fb + an unwired marketplace returns only the 3 fb rows;
+    # the unwired-marketplace mock is empty (Round 3: all 4 supported
+    # marketplaces are wired, so we use a deliberately bogus name here).
+    results = await discovery.search("desk", ["fb", "amazon"], max_per_source=10)
     assert len(results) == 3
     assert all(r.marketplace == "fb" for r in results)
+
+
+@pytest.mark.asyncio
+async def test_mock_returns_all_four_marketplaces(use_mocks):
+    """Round 3: fb + nextdoor + offerup + craigslist all return rows when
+    requested together. Verifies sponsor depth (≥3 marketplaces) end-to-end
+    on the mock path."""
+    listings = await discovery.search(
+        "desk",
+        ["fb", "nextdoor", "offerup", "craigslist"],
+        max_per_source=5,
+    )
+    found = {l.marketplace for l in listings}
+    assert {"fb", "nextdoor", "offerup", "craigslist"}.issubset(found)
+    # Each marketplace fixture set is 3 rows; total should be 12.
+    assert len(listings) == 12
+    for l in listings:
+        assert isinstance(l, Listing)
+        assert "desk" in (l.title or "").lower()
 
 
 @pytest.mark.asyncio
