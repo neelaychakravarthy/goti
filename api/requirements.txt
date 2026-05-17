@@ -1,0 +1,25 @@
+fastapi==0.115.*
+uvicorn[standard]>=0.34.0,<0.36.0
+pydantic>=2.9,<3
+pydantic-settings>=2.6,<3
+sqlalchemy[asyncio]==2.0.*
+greenlet>=3.0.0
+asyncpg==0.30.*
+alembic==1.13.*
+httpx>=0.27,<0.29
+anthropic>=0.40,<1.0
+agentfield
+everos
+browserbase>=1.0.0
+playwright>=1.40.0
+# browser-use's AI-agent loop drives Browserbase sessions over CDP for
+# both discovery (search marketplaces) and negotiation (send / fetch).
+# We use its built-in ChatAnthropic adapter so no langchain client is
+# required.
+browser-use>=0.12.0
+slowapi>=0.1.9
+python-dotenv>=1.0,<2.0
+google-auth>=2.30.0,<3.0
+requests>=2.31.0,<3.0
+pytest==8.3.*
+pytest-asyncio==0.24.*

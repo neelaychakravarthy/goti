@@ -1,0 +1,79 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: goti
+      POSTGRES_PASSWORD: goti
+      POSTGRES_DB: goti
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U goti -d goti"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8000:8000"   # FastAPI (uvicorn)
+      - "8080:8080"   # AgentField agent server (self-hosted in same container)
+    volumes:
+      - ./api:/app/api
+    environment:
+      POSTGRES_URI: postgresql+asyncpg://goti:goti@postgres:5432/goti
+      # FastAPI IS the AgentField control plane (see ``api/routes/agent_bridge.py``).
+      # The reasoner agent server runs alongside on :8080; AgentField client
+      # libraries point here (:8000) so request-approval / heartbeats / etc.
+      # reach our bridge router. Loopback works in docker-compose + Zeabur.
+      AF_CONTROL_PLANE_URL: http://localhost:8000
+      # The agent server (``python -m api.agents.clarifier`` -> ``app.run()``)
+      # listens on :8080. FastAPI's orchestration layer POSTs to this URL to
+      # invoke reasoners (clarifier, valuation, negotiator, coordinator,
+      # picker, classifier). DO NOT swap this with AF_CONTROL_PLANE_URL —
+      # see ``api/config.py`` docstrings for the distinction.
+      AF_AGENT_SERVER_URL: http://localhost:8080
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      CLAUDE_MODEL_ID: ${CLAUDE_MODEL_ID:-claude-haiku-4-5-20251001}
+      CLAUDE_BROWSER_MODEL_ID: ${CLAUDE_BROWSER_MODEL_ID:-claude-sonnet-4-6}
+      EVEROS_API_KEY: ${EVEROS_API_KEY:-}
+      GOTI_ALLOWED_ORIGINS: ${GOTI_ALLOWED_ORIGINS:-}
+      GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:-}
+      BROWSERBASE_API_KEY: ${BROWSERBASE_API_KEY:-}
+      BROWSERBASE_PROJECT_ID: ${BROWSERBASE_PROJECT_ID:-}
+      BROWSERBASE_MAX_CONCURRENT: ${BROWSERBASE_MAX_CONCURRENT:-24}
+      PYTHONPATH: /app
+    # Run the AgentField agent server (:8080) + uvicorn FastAPI (:8000) in one
+    # container. The `agentfield` PyPI package has no standalone `af server`
+    # CLI — agents self-host via `app.run()`. `wait -n` is a bash extension
+    # (not in dash, which is /bin/sh on python:slim) — invoke bash explicitly.
+    # `wait -n` exits if either process dies so docker restarts the container.
+    #
+    # NO ``--reload``. Every WatchFiles-triggered reload:
+    #   - drops the agent server's memory-events WebSocket (5 exponential
+    #     retries = 31s of "Failed to connect to memory events" spam),
+    #   - kills any in-flight discovery / negotiation asyncio.Task
+    #     (leaking the Browserbase session attached to it),
+    #   - and races a new worker against the still-draining old one for
+    #     DB writes — which produced the "ghost stale hunts" + "no
+    #     listings surfaced even though the agent extracted one"
+    #     classes of bug we've been chasing all day.
+    # The reasonable dev loop is: edit code -> ``docker compose
+    # restart api`` (5s). Reliability > save-and-go.
+    # Run alembic migrations FIRST so newly-added tables exist before the
+    # agent server / API try to query them. Without this, freshly-cut
+    # migrations (e.g., async_tasks 0014) sit unmigrated and every read
+    # ERRORs with "relation does not exist".
+    command: ["bash", "-c", "cd /app/api && alembic upgrade head && cd /app && (python -m api.agents.clarifier & uvicorn api.main:app --host 0.0.0.0 --port 8000 & wait -n)"]
+
+volumes:
+  postgres_data:

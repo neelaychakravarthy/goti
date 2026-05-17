@@ -1,0 +1,19 @@
+[project]
+name = "goti-api"
+version = "0.0.1"
+description = "Goti backend: FastAPI + AgentField agents + external integrations."
+requires-python = ">=3.11"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["api*"]
+
+[tool.pytest.ini_options]
+# Keep tests rooted in api/tests; rootdir is the api/ folder.
+testpaths = ["tests"]
+asyncio_mode = "auto"
+markers = [
+    "live: hits real external APIs (Browserbase, Anthropic, etc). Skipped by default; run with `pytest -m live`.",
+]
+# Don't pick up `live` tests unless explicitly requested.
+addopts = "-m 'not live'"

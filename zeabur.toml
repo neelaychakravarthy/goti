@@ -1,0 +1,52 @@
+# Zeabur deployment config — split-deploy backend.
+#
+# Frontend (web/) ships to Vercel; this config covers ONLY the FastAPI
+# api/ service + the Postgres add-on. See ZEABUR.md for dashboard-based
+# deploy steps.
+#
+# This file follows Zeabur's TOML convention for repo-rooted custom
+# build configs. If Zeabur's CLI / template engine doesn't recognise
+# it, fall back to ZEABUR.md (dashboard-driven deploy).
+
+name = "goti-api"
+
+[build]
+# Dockerfile sits at repo root (Zeabur auto-detection requires this).
+# Build context is the repo root — the Dockerfile's COPY directives
+# (e.g. `COPY api /app/api`) are root-relative.
+dockerfile = "Dockerfile"
+context = "."
+
+[serve]
+# FastAPI/uvicorn binds to $PORT inside the container; Zeabur's
+# auto-port-detection picks 8000 up from the EXPOSE directive in
+# api/Dockerfile. The Dockerfile's CMD already runs uvicorn on 0.0.0.0:8000.
+port = 8000
+# FastAPI's auto-generated OpenAPI doc page is the cheapest healthcheck
+# target — no DB hit, no LLM hit, returns 200 if the app booted at all.
+healthcheck = "/docs"
+
+[plugins]
+# Provision a Postgres add-on. Zeabur injects POSTGRES_URI (plus the
+# related POSTGRES_HOST / PORT / USERNAME / PASSWORD / DATABASE vars)
+# into any linked service automatically. The backend reads POSTGRES_URI
+# directly — see api/config.py.
+postgresql = true
+
+# Environment variables passed through to the api service.
+# Values come from the Zeabur dashboard (Project -> Variables).
+# POSTGRES_URI is auto-injected by the Postgres add-on when this
+# plugin is linked, so it's not listed here.
+[env]
+ANTHROPIC_API_KEY = { from = "secret" }
+EVEROS_API_KEY = { from = "secret" }
+BROWSERBASE_API_KEY = { from = "secret" }
+BROWSERBASE_PROJECT_ID = { from = "secret" }
+BROWSERBASE_MAX_CONCURRENT = "24"
+AF_CONTROL_PLANE_URL = { from = "secret", required = false }
+CLAUDE_MODEL_ID = "claude-haiku-4-5-20251001"
+CLAUDE_BROWSER_MODEL_ID = "claude-sonnet-4-6"
+# Comma-separated allowed CORS origins — point at the Vercel deployment.
+GOTI_ALLOWED_ORIGINS = { from = "secret" }
+# Google OAuth client_id — must match the value the Vercel frontend uses.
+GOOGLE_OAUTH_CLIENT_ID = { from = "secret" }
